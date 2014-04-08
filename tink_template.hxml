@@ -1,0 +1,7 @@
+-cp src
+-cp tests
+-lib tink_macro
+--macro tink.Template.use()
+-js bin/tests.js
+-main Run
+#iota start Run.bat
