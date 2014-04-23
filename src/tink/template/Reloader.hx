@@ -17,7 +17,7 @@ class Reloader implements tink.Lang {
 	var compiling = false;
 	
 	public function new() 
-		js.Node.fs.watch(
+		js.Node.fs.watchFile(
 			file, 
 			{ interval: 500, persistent: false }, 
 			function(_, _) compile()
