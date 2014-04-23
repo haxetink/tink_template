@@ -25,7 +25,7 @@ class Run {
 		var r = new TestRunner();
 		for (c in tests)
 			r.add(c);
-		r.run();
+		// r.run();
 	}
 
 }

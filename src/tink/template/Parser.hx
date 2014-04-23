@@ -9,10 +9,10 @@ enum TExpr {
 	Const(value:String, pos:Position);
 	Yield(e:Expr);
 	Do(e:Expr);
-	Var(a:Array<Var>);
+	Var(a:Array<Var>, access:Array<Access>);
 	If(cond:Expr, cons:TExpr, ?alt:TExpr);
 	For(target:Expr, body:TExpr);
-	Function(name:String, args:Array<FunctionArg>, body:TExpr);
+	Function(name:String, args:Array<FunctionArg>, body:TExpr, access:Array<Access>);
 	Block(exprs:Array<TExpr>);
 }
 
@@ -21,81 +21,11 @@ class Parser {
 	var pos:Int;
 	var last:Int;
 	var file:String;
-	var source:String;
-	
-	// static var templates:Map<String, String>;
-	// static var cache = new Map<String, CacheEntry>();
-	
-	// static function buildEntry(name:String, pos:Position):CacheEntry {
-	// 	var path = templates[name];
-	// 	var source = path.getContent();
-		
-	// 	Context.registerModuleDependency(Context.getLocalClass().get().module, path);
-		
-	// 	var hx = null,
-	// 		expr = new Parser(source, path).parseFull();
-			
-	// 	var ret = {
-	// 		source: source,
-	// 		path: path,
-	// 		dependencies: deps,
-	// 		expr: expr,
-	// 		hx: function () {
-	// 			// return Generator.generate(expr, ['__v0']);
-	// 			if (hx == null) {
-	// 				if (Context.defined('just_template')) 
-	// 					trace('generating $name');
-	// 				hx = Generator.generate(expr, ['__v0']);
-	// 			}
-	// 			return hx;
-	// 		}
-	// 	}
-	// 	cache[name] = ret;
-	// 	return ret;		
-	// }
-	
-	// static function getTemplate(name:String, pos:Position):CacheEntry
-	// 	if (!templates.exists(name))
-	// 		return pos.error('No template found for $name');
-	// 	else {
-	// 		if (cache.exists(name)) {
-	// 			for (dep in cache[name].dependencies)
-	// 				if (dep.path.stat().mtime.getTime() > dep.mtime)
-	// 					return buildEntry(name, pos);
-	// 			// trace('CACHEHIT');
-	// 			// trace(cache[name].dependencies);
-	// 			if (deps != null)
-	// 				deps = deps.concat(cache[name].dependencies);
-	// 			return cache[name];
-	// 		}
-	// 		else return buildEntry(name, pos);
-	// 	}
-
-	// static var deps:CacheDependencies;
-	// static public function process(name, templates, type:ComplexType, pos) {	
-	// 	Parser.templates = templates;
-	// 	type.toType().sure();		
-
-	// 	deps = [];
-		
-	// 	var info = getTemplate(name, pos);
-	// 	var ret =
-	// 		macro @:pos(pos) function (__v0:$type):view.Html {
-	// 			var ret = new view.Html();
-	// 			${Generator.splat('__v0', pos)};
-	// 			${info.hx()};
-	// 			return ret.collapse();
-	// 		};
-	// 	deps = null;
-		
-	// 	return ret.getFunction().sure();
-	// }
+	var source:String;	
 	
 	public function new(source, file) {
 		this.source = source;
 		this.file = file;
-		// if (deps != null)
-		// 	deps.push({ path: file, mtime: file.stat().mtime.getTime() });//TODO: cache mtimes somehow
 		this.pos = 0;
 		this.last = 0;
 	}
@@ -152,84 +82,93 @@ class Parser {
 	function parseSimple():Expr
 		return Context.parse(until('::'), getPos());
 
-	function parseInline():TExpr {
+	function parseInline():TExpr 
 		return Yield(parseSimple());
-		// var raw = parseSimple();
-		// return 
-		// 	switch raw {
-		// 		// case macro $i{name} if (name.startsWith('tpl_')):
-		// 		// 	Include(getTemplate(name.substr(4), raw.pos), false);
-		// 		// case macro $i{name}.source if (name.startsWith('tpl_')):
-		// 		// 	Const(getTemplate(name.substr(4), raw.pos).source, raw.pos);
-		// 		default:
-		// 			Yield(raw);
-		// 	}
-	}
 	
 	function expect(s:String) 
 		if (!allow(s))
 			getPos().error('expected $s');	
+	
+	function parseComplex() {
+		var access = [];
+		var done = false;
+		var all = [for (a in [APublic, AStatic, AInline, APrivate, ADynamic]) a.getName().substr(1).toLowerCase()+' ' => a];
 		
+		while (!done) {
+			done = true;
+			for (a in all.keys())
+				if (allow(a)) {
+					done = false;
+					access.push(all[a]);
+				}
+		}
+		
+		var ret = 
+			if (allow('for ')) {
+				var target = parseSimple();
+				var body = parseFull();
+				expect('::end::');
+				For(target, body);
+			}
+			else if (allow('*')) {
+				until('*::');
+				Block([]);
+			}
+			else if (allow('do ')) 
+				Do(parseSimple());
+			else if (allow('if ')) {
+				var cases = [],
+					alt = null;
+				function next()
+					cases.push({
+						when: parseSimple(),
+						then: parseFull()
+					});
+				next();
+				while (allow('::elseif')) 
+					next();
+				if (allow('::else::'))
+					alt = parseFull();
+				expect('::end::');
+				
+				while (cases.length > 0)
+					switch cases.pop() {
+						case v: 
+							alt = If(v.when, v.then, alt);
+					}
+				alt;
+			}
+			else if (allow('function ')) {
+				var func = Context.parse('function ${until("::")} {}', getPos()),
+					body = parseFull();
+				
+				expect('::end::');
+				switch func.expr {
+					case EFunction(name, f):
+						Function(name, f.args, body, access);
+					default:
+						throw 'assert';
+				}
+			}
+			else if (allow('var ')) {
+				pos-=4;
+				switch parseSimple().expr {
+					case EVars(vars): 
+						Var(vars, access);
+					default:
+						throw 'assert';
+				}
+			}
+			else parseInline();	
+		
+		
+		return ret;
+	}
+	
 	function parse():TExpr
 		return
-			if (allow('::')) {
-				if (allow('for ')) {
-					var target = parseSimple();
-					var body = parseFull();
-					expect('::end::');
-					For(target, body);
-				}
-				else if (allow('*')) {
-					until('*::');
-					Block([]);
-				}
-				else if (allow('do ')) 
-					Do(parseSimple());
-				else if (allow('if ')) {
-					var cases = [],
-						alt = null;
-					function next()
-						cases.push({
-							when: parseSimple(),
-							then: parseFull()
-						});
-					next();
-					while (allow('::elseif')) 
-						next();
-					if (allow('::else::'))
-						alt = parseFull();
-					expect('::end::');
-					
-					while (cases.length > 0)
-						switch cases.pop() {
-							case v: 
-								alt = If(v.when, v.then, alt);
-						}
-					alt;
-				}
-				else if (allow('function ')) {
-					var func = Context.parse('function ${until("::")} {}', getPos()),
-						body = parseFull();
-					
-					expect('::end::');
-					switch func.expr {
-						case EFunction(name, f):
-							Function(name, f.args, body);
-						default:
-							throw 'assert';
-					}
-				}
-				else if (allow('var ')) {
-					pos-=4;
-					switch parseSimple().expr {
-						case EVars(vars): 
-							Var(vars);
-						default:
-							throw 'assert';
-					}
-				}
-				else parseInline();
-			}
+			if (allow('::')) 
+				parseComplex();
 			else {
 				var pos = getPos();
 				switch until('::', true).split('@{') {

@@ -17,8 +17,38 @@ using sys.io.File;
 using StringTools;
 
 class Template {
-	static public function use() 
+	static var rebuild = null;
+	static public function use(?rebuildWith:String) {
 		Context.onTypeNotFound(getType);
+		rebuild = rebuildWith;
+	}
+	
+	static public function just(name:String) {
+		Context.onGenerate(function (types:Array<Type>) {
+			for (t in types) {
+				if (t.getID() != name)
+					switch t {
+						case TInst(c, _):
+							c.get().exclude();
+						case TEnum(e, _):
+							e.get().exclude();
+						default:
+					}
+				else
+					switch t {
+						case TInst(c, _):
+							var c = c.get();
+							var meta = c.meta;
+							if (meta.has(':native'))
+								meta.remove(':native');
+							meta.add(':native', [macro "$template"], c.pos);
+						default:
+					}
+			}
+		});
+		Template.use();
+		Context.getType(name);
+	}
 	
 	static function getType(name:String) {
 		var tail = '/' + name.replace('.', '/')+'.tpl';
@@ -32,48 +62,68 @@ class Template {
 	
 	static function getPos(t:TExpr)
 		return
-			switch t {
+			if (t == null) null;
+			else switch t {
 				case Const(_, pos): pos;
 				case For(e, _), If(e, _, _), Yield(e), Do(e): e.pos;
-				case Var([]): Context.currentPos();
+				case Var([], _): Context.currentPos();
 				case Block([]): Context.currentPos();
-				case Var(a): a[0].expr.pos;
-				case Function(_, _, t): getPos(t);
+				case Var(a, _): a[0].expr.pos;
+				case Function(_, _, t, _): getPos(t);
 				case Block(a): getPos(a[0]);
 			}	
 	
+	static function posComment(pos:Position) {
+		var pos = Context.getPosInfos(pos);
+		return '<!-- POSITION: ${haxe.Json.stringify(pos)} -->';
+	}
+	
+	static function functionBody(body:TExpr):Expr {
+		var pos = getPos(body);
+		var body = [body];
+		if (Context.defined('debug'))
+			body.unshift(Const(posComment(pos), pos));
+			
+		return macro @:pos(pos) {
+			var ret = new tink.template.Html();
+			$a{body.map(generate)};
+			return ret.collapse();			
+		}
+	}
+	
 	static public function generate(t:TExpr):Expr {
-					
+		var pos = getPos(t);		
 		var ret:Expr = 
 			if (t == null) null;
 			else switch t {
 				case Const(value, pos):
-					macro @:pos(pos) ret.add(tink.template.Html.fragment($v{value}));
+					macro @:pos(pos) ret.add(tink.template.Html.raw($v{value}));
 				case Yield(e):
 					macro @:pos(e.pos) ret.add($e);
 				case Do(e):
 					e;
-				case Var(vars):
-					EVars(vars).at();
+				case Var(vars, access):
+					if (access.length > 0)
+						pos.error('unexpected ' + access);
+					EVars(vars).at(pos);
 				case If(cond, cons, alt):
-					macro 
+					macro @:pos(pos)
 						if ($cond)
 							${generate(cons)}
 						else
 							${generate(alt)};
 				case For(target, body):
-					macro @:pos(target.pos)
+					macro @:pos(pos)
 						for ($target) 
 							${generate(body)};
-				case Function(name, args, body):
-					var body = macro {
-						var ret = new tink.template.Html();
-						${generate(body)};
-						return ret.collapse();
-					}
-					body.func(args, false).asExpr(name);
+							
+				case Function(name, args, body, access):
+					if (access.length > 0)
+						pos.error('unexpected ' + access);					
+						
+					functionBody(body).func(args, false).asExpr(name);
 				case Block(exprs):
-					exprs.map(generate).toBlock();
+					exprs.map(generate).toBlock(pos);
 			}
 		
 		return ret;
@@ -94,37 +144,68 @@ class Template {
 		
 		var fields = new Array<Field>();
 		
-		for (part in parts)
-			switch part {
-				case Function(name, args, body):
-					fields.push({
-						name: name,
-						access: [APublic, AStatic],
-						pos: getPos(part),
-						kind: FFun({
-							args: args,
-							ret: null,
-							expr: macro {
-								var ret = new tink.template.Html();
-								${generate(body)};
-								return ret.collapse();
-							}
-						})
-					});
-				case Const(v, _) if (v.trim() == ''):
-				default:
-					getPos(part).error('function expected');
+		for (part in parts) {
+			function add(?name, access, kind) {
+				var m:Member = {
+					name: if (name == null) MacroApi.tempName() else name,
+					access: access,
+					pos: getPos(part),
+					kind: kind
+				};
+				m.publish();
+				fields.push(m);	
 			}
+				
+			switch part {
+				case Function(name, args, body, access):
+					add(name, access, FFun({
+						args: args,
+						ret: null,
+						expr: functionBody(body)
+					}));
+				case Const(v, _) if (v.trim() == ''):
+				case Var([v], access):
+					add(v.name, access, FVar(v.type, v.expr));
+				default:
+					add([], FFun({
+						args: [],
+						ret: null,
+						expr: getPos(part).errorExpr('function expected')
+					}));
+			}
+		}
 		
+		var file = Context.getPosInfos(pos).file;
+		if (file.charAt(1) == ':' || file.charAt(0) == '/') {
+			
+		}
+		else
+			file = Sys.getCwd() + file;
+		
+		if (rebuild != null)
+			fields.push({
+				name: '___initialized',
+				pos: pos,
+				access: [AStatic],
+				kind: FVar(null, macro {
+					tink.template.Reloader.add($v{name}, $v{file}, $v{rebuild});
+					true;
+				})
+			});
 		
 		var pack = name.split('.');
 		var name = pack.pop();
+		var interfaces = [];
+		
+		if (Context.defined('tink_lang'))
+			interfaces.push('tink.Lang'.asTypePath());
+			
 		return {
 			pos: pos,
 			fields: fields,
 			name: name,
 			pack: pack,
-			kind: TDClass()
+			kind: TDClass(interfaces)
 		}
 	}
 }

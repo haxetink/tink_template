@@ -29,13 +29,11 @@ abstract Html(Array<String>) {
 	public inline function add(b:HtmlFragment)
 		this.push(b);
 		
-	static public inline function fragment(s:String)
+	static public inline function raw(s:String)
 		return new HtmlFragment(s);
 	
 	static public inline function of<A>(value:A)
 		return @:privateAccess HtmlFragment.fromAny(value);
-	
-	// @:from static function ofSingle(f:HtmlFragment)
 	
 	static public function escape(s:String) {
 		if (s == null) return null;
