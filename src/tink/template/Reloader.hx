@@ -105,5 +105,9 @@ class Reloader implements tink.Lang {
 		return js.Node.child_process.spawn(cmd, params, options);
 }
 #else
-	#error 
+class Reloader {
+	static public function add(name, file, params:String) {
+		
+	}
+}
 #end

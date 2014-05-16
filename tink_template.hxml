@@ -1,7 +1,16 @@
+-D tink_lang
+-D tink_macro
+-D tink_core
+
+-cp ../tink_core/src
+-cp ../tink_macro/src
+-cp ../tink_lang/src
+
 -cp src
 -cp tests
--lib tink_macro
---macro tink.Template.use()
--js bin/tests.js
--main Run
+-lib nodejs
+--macro tink.Template.use('-lib tink_macro\n -lib tink_lang\n -cp ../src\n -cp ../tests\n')
+#-js bin/tests.js
+-neko bin/tests.n
+-main Example
 #iota start Run.bat

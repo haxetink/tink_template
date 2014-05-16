@@ -15,17 +15,19 @@ using tink.MacroApi;
 using sys.FileSystem;
 using sys.io.File;
 using StringTools;
+using Lambda;
 
 class Template {
+	
 	static var rebuild = null;
 	static public function use(?rebuildWith:String) {
-		Context.onTypeNotFound(getType);
+		MacroApi.onTypeNotFound(getType);
 		rebuild = rebuildWith;
 	}
 	
 	static public function just(name:String) {
-		Context.onGenerate(function (types:Array<Type>) {
-			for (t in types) {
+		Context.onGenerate(function (types:Array<Type>)
+			for (t in types)
 				if (t.getID() != name)
 					switch t {
 						case TInst(c, _):
@@ -44,8 +46,7 @@ class Template {
 							meta.add(':native', [macro "$template"], c.pos);
 						default:
 					}
-			}
-		});
+		);
 		Template.use();
 		Context.getType(name);
 	}
@@ -65,11 +66,12 @@ class Template {
 			if (t == null) null;
 			else switch t {
 				case Const(_, pos): pos;
+				case Define(_, e), Meta(_, e): getPos(e);
 				case For(e, _), If(e, _, _), Yield(e), Do(e): e.pos;
-				case Var([], _): Context.currentPos();
+				case Var([]): Context.currentPos();
 				case Block([]): Context.currentPos();
-				case Var(a, _): a[0].expr.pos;
-				case Function(_, _, t, _): getPos(t);
+				case Var(a): a[0].expr.pos;
+				case Function(_, _, t): getPos(t);
 				case Block(a): getPos(a[0]);
 			}	
 	
@@ -91,20 +93,25 @@ class Template {
 		}
 	}
 	
-	static public function generate(t:TExpr):Expr {
+	static function generate(t:TExpr):Expr {
 		var pos = getPos(t);		
 		var ret:Expr = 
 			if (t == null) null;
 			else switch t {
+				case Meta(meta, e):
+					var e = generate(e);
+					for (m in meta)
+						e = EMeta(m, e).at(m.pos);
+					e;
 				case Const(value, pos):
 					macro @:pos(pos) ret.add(tink.template.Html.raw($v{value}));
+				case Define(name, value):
+					macro @:pos(pos) var $name = ${generate(value)};
 				case Yield(e):
 					macro @:pos(e.pos) ret.add($e);
 				case Do(e):
 					e;
-				case Var(vars, access):
-					if (access.length > 0)
-						pos.error('unexpected ' + access);
+				case Var(vars):
 					EVars(vars).at(pos);
 				case If(cond, cons, alt):
 					macro @:pos(pos)
@@ -117,10 +124,7 @@ class Template {
 						for ($target) 
 							${generate(body)};
 							
-				case Function(name, args, body, access):
-					if (access.length > 0)
-						pos.error('unexpected ' + access);					
-						
+				case Function(name, args, body):						
 					functionBody(body).func(args, false).asExpr(name);
 				case Block(exprs):
 					exprs.map(generate).toBlock(pos);
@@ -130,48 +134,32 @@ class Template {
 	}		
 	
 	static function parse(file:String, name:String):TypeDefinition {
-		
+		var args = Sys.args();
+		var isMain = 
+			switch args.indexOf('-main') {
+				case -1: false;
+				case v: args[v + 1] == name;
+			}
+			
 		var source = file.getContent();
 		var pos = Context.makePosition({ file: file, min: 0, max: source.length });
 		
-		pos.warning('Generating $name');
+		var fields = new Array<Member>();
 		
-		var parts = 
-			switch new Parser(source, file).parseFull() {
-				case Block(exprs): exprs;
-				case v: [v];
-			}
-		
-		var fields = new Array<Field>();
-		
-		for (part in parts) {
-			function add(?name, access, kind) {
-				var m:Member = {
-					name: if (name == null) MacroApi.tempName() else name,
-					access: access,
-					pos: getPos(part),
-					kind: kind
-				};
-				m.publish();
-				fields.push(m);	
-			}
-				
-			switch part {
-				case Function(name, args, body, access):
-					add(name, access, FFun({
-						args: args,
-						ret: null,
-						expr: functionBody(body)
-					}));
-				case Const(v, _) if (v.trim() == ''):
-				case Var([v], access):
-					add(v.name, access, FVar(v.type, v.expr));
-				default:
-					add([], FFun({
-						args: [],
-						ret: null,
-						expr: getPos(part).errorExpr('function expected')
-					}));
+		for (f in new Parser(source, file).parseAll()) {
+			switch f {
+				case VanillaField(f):
+					fields.push(f);
+				case TemplateField(f, tpl):
+					fields.push(f);
+					switch f.kind {
+						case FFun(f):
+							f.expr = functionBody(tpl);
+						case FVar(t, _):
+							f.kind = FVar(t, generate(tpl));
+						case FProp(get, set, t, _):
+							f.kind = FProp(get, set, t, generate(tpl));
+					}
 			}
 		}
 		
@@ -192,6 +180,19 @@ class Template {
 					true;
 				})
 			});
+			
+		if (isMain && !fields.exists(function (m) return m.name == 'main')) {
+			if (Context.defined('neko')) {
+				var calls = fields.filter(function (m) return m.name.startsWith('do'));
+				
+			}
+			else fields.push({
+				name: '___whoops',
+				pos: pos,
+				access: [AStatic],
+				kind: FVar(null, pos.errorExpr('main mode is currently neko only')),
+			});
+		}
 		
 		var pack = name.split('.');
 		var name = pack.pop();

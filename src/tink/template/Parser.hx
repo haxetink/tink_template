@@ -3,17 +3,25 @@ package tink.template;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 
+using tink.CoreApi;
 using tink.MacroApi;
 
 enum TExpr {
 	Const(value:String, pos:Position);
+	Meta(data:Metadata, expr:TExpr);
 	Yield(e:Expr);
 	Do(e:Expr);
-	Var(a:Array<Var>, access:Array<Access>);
+	Var(a:Array<Var>);
+	Define(name:String, value:TExpr);
 	If(cond:Expr, cons:TExpr, ?alt:TExpr);
 	For(target:Expr, body:TExpr);
-	Function(name:String, args:Array<FunctionArg>, body:TExpr, access:Array<Access>);
+	Function(name:String, args:Array<FunctionArg>, body:TExpr);
 	Block(exprs:Array<TExpr>);
+}
+
+enum TDecl {
+	VanillaField(f:Field);
+	TemplateField(f:Field, expr:TExpr);
 }
 
 class Parser {
@@ -72,7 +80,7 @@ class Parser {
 			file: file
 		});
 	
-	public function parseFull():TExpr {
+	function parseFull():TExpr {
 		var ret = [parse()];
 		while (!isNext('::end::') && !isNext('::else') && pos < source.length)
 			ret.push(parse());
@@ -89,19 +97,181 @@ class Parser {
 		if (!allow(s))
 			getPos().error('expected $s');	
 	
-	function parseComplex() {
-		var access = [];
+	static var ACCESSES = [for (a in Access.createAll()) a.getName().substr(1).toLowerCase() => a];
+	
+	public function parseAll() {
+		skipWhite();
+		var ret = [];
+		while (allow('::')) {
+			ret.push(parseDecl());
+			skipWhite();
+		}
+		return ret;
+	}
+	
+	function parseDecl() {
+		var meta = parseMeta(),
+			access = parseAccess();
+			
+		return	
+			if (isNext('var ')) {
+				switch Context.parseInlineString('(null : {'+until('::')+'})', getPos()) {
+					case { expr: ECheckType(_, TAnonymous([f])) }:
+						f.meta = meta;
+						f.access = access;
+						
+						switch f.kind {
+							case FVar(_, null), FProp(_, _, _, null): 
+								VanillaField(f);
+							default:
+								TemplateField(f, parseToEnd());
+						}
+					case v: 
+						v.reject('invalid variable declaration'); 
+				}
+			}
+			else if (allow('function ')) {
+				var f = parseFunction();
+				var ret:Field = {
+					name: f.name,
+					pos: f.pos,
+					meta: meta,
+					access: access,
+					kind: FFun(f.func),
+				}
+				
+				if (f.tpl == null) 
+					VanillaField(ret);
+				else
+					TemplateField(ret, f.tpl);
+			}
+			else 
+				getPos().error('what\'s your problem man?');
+	}
+	
+	function parseFunction() {
+		var name = ident().sure();
+		
+		skipWhite();
+		
+		var args = getArgs();
+		
+		skipWhite();
+		
+		var tpl = null;
+		var fBody = 
+			if (allow('::')) {
+				tpl = parseToEnd();
+				'{}';
+			}
+			else 
+				until('::');
+		
+		var func = 
+			switch Context.parseInlineString('function $name($args) $fBody', getPos()) {
+				case { expr: EFunction(_, f) }:
+					if (tpl != null)
+						f.expr = null;
+					f;
+				default:
+					throw 'assert';
+			}
+		
+		return {
+			tpl: tpl,
+			func: func,
+			name: name,
+			pos: getPos(),
+		}
+	}
+	
+	function skipWhite() 
+		while (source.charCodeAt(pos) <= 32) pos++;
+	
+	static var IDENT = [for (c in '_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) c.charCodeAt(0) => true];
+	
+	function ident() {
+		this.last = pos;
+		while (IDENT[source.charCodeAt(pos)])
+			pos++;
+		return
+			if (last == pos)
+				getPos().makeFailure('identifier expected');
+			else
+				Success(source.substring(last, pos));
+	}
+	
+	function parseMetaEntry():MetadataEntry {
+		
+		expect('@');
+		
+		var name = (allow(':') ? ':' : '') + ident();
+		var ret = {
+			pos: getPos(),
+			name: name,
+			params: [],
+		}
+		
+		skipWhite();
+		
+		if (isNext('(')) {
+			var start = pos;
+			var s = getArgs();
+			
+			var pos = getPos();
+			
+			switch Context.parseInlineString('[$s]', pos) {
+				case macro [$a{args}]:
+					skipWhite();
+					ret.pos = pos;
+					ret.params = args;
+				default:
+					throw 'assert';
+			}
+		}
+		return ret;
+	}
+	
+	function getArgs() {
+		var start = pos;
+		var ret = '';
+		do {
+			until(')');
+			ret = source.substring(start + 1, pos - 1);
+		} while (ret.split('(').length > ret.split(')').length);		
+		last = start;
+		return ret;
+	}
+	
+	function parseMeta()
+		return
+			[while (isNext('@')) parseMetaEntry()];
+			
+	function parseAccess() {
+		var ret = [];
 		var done = false;
-		var all = [for (a in [APublic, AStatic, AInline, APrivate, ADynamic]) a.getName().substr(1).toLowerCase()+' ' => a];
 		
 		while (!done) {
 			done = true;
-			for (a in all.keys())
+			for (a in ACCESSES.keys())
 				if (allow(a)) {
+					skipWhite();
 					done = false;
-					access.push(all[a]);
+					ret.push(ACCESSES[a]);
 				}
 		}
+		return ret;		
+	}
+	
+	function parseToEnd() {
+		var ret = parseFull();
+		expect('::end::');
+		return ret;
+	}
+	
+	function parseComplex() {
+		
+		var meta = parseMeta();
 		
 		var ret = 
 			if (allow('for ')) {
@@ -139,22 +309,18 @@ class Parser {
 				alt;
 			}
 			else if (allow('function ')) {
-				var func = Context.parse('function ${until("::")} {}', getPos()),
-					body = parseFull();
-				
-				expect('::end::');
-				switch func.expr {
-					case EFunction(name, f):
-						Function(name, f.args, body, access);
-					default:
-						throw 'assert';
-				}
+				var f = parseFunction();
+				if (f.tpl == null)
+					Do(EFunction(f.name, f.func).at(f.pos));
+				else
+					Function(f.name, f.func.args, f.tpl);
 			}
-			else if (allow('var ')) {
-				pos-=4;
+			else if (isNext('var ')) {
 				switch parseSimple().expr {
+					case EVars([{ name: name, expr: null }]):
+						Define(name, parseToEnd());
 					case EVars(vars): 
-						Var(vars, access);
+						Var(vars);
 					default:
 						throw 'assert';
 				}
@@ -162,7 +328,10 @@ class Parser {
 			else parseInline();	
 		
 		
-		return ret;
+		return switch meta {
+			case []: ret;
+			case v: Meta(v, ret);
+		}
 	}
 	
 	function parse():TExpr
@@ -171,12 +340,12 @@ class Parser {
 				parseComplex();
 			else {
 				var pos = getPos();
-				switch until('::', true).split('@{') {
+				switch until('::', true).split('@L[') {
 					case [ret]: Const(ret, pos);
 					case parts:
 						var ret = [Const(parts.shift(), pos)];
 						for (part in parts) {
-							var next = part.indexOf('}');
+							var next = part.indexOf(']');
 							if (next == -1)
 								pos.error('unclosed localization expression: ${part.substr(0, 20)}');
 							ret.push(
