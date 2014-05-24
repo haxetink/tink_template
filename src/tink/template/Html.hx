@@ -1,41 +1,10 @@
 package tink.template;
 
-abstract HtmlFragment(String) to String {
-	public inline function new(s) this = s;
-	public inline function toString():String
-		return this;
-	@:to public function toHtml():Html
-		return cast [this];
+abstract Html(String) {
 	
-	@:from static inline function fromHtml(html:Html)
-		return new HtmlFragment(html.toString());
-		
-	@:from static inline function fromString(s:String) 
-		return new HtmlFragment(Html.escape(s));
-		
-	@:from static inline function fromAny<A>(v:A):HtmlFragment
-		return fromString(Std.string(v));	
-}
+	public inline function new(s:String) this = s;
 	
-abstract Html(Array<String>) {
-	public inline function new() this = [];	
-	
-	public function collapse():HtmlFragment
-		return new HtmlFragment(toString());
-	
-	@:to public inline function toString():String
-		return this.join('');
-	
-	public inline function add(b:HtmlFragment)
-		this.push(b);
-		
-	static public inline function raw(s:String)
-		return new HtmlFragment(s);
-	
-	static public inline function of<A>(value:A)
-		return @:privateAccess HtmlFragment.fromAny(value);
-	
-	static public function escape(s:String) {
+	@:from static public function escape(s:String):Html {
 		if (s == null) return null;
 		s = Std.string(s);
 		var start = 0,
@@ -57,8 +26,30 @@ abstract Html(Array<String>) {
 				case '>': flush('&gt;');
 				case '&': flush('&amp;');
 			}
+			
 		flush();
-		return ret;
-	}
+		return new Html(ret);
+	}		
+	@:from static function ofMultiple(parts:Array<Html>):Html 
+		return new Html(parts.join(''));
+		
+	@:from static public function of<A>(a:A):Html
+		return escape(Std.string(a));
+		
+	static public function buffer():HtmlBuffer 
+		return new HtmlBuffer();
+}
 
+abstract HtmlBuffer(Array<Html>) {
+	public inline function new() this = [];
+	
+	public function collapse():Html
+		return this;
+	
+	@:to public inline function toString():String
+		return this.join('');
+	
+	public inline function add(b:Html)
+		this.push(b);
+		
 }

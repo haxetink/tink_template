@@ -256,21 +256,22 @@ With `tink_template` all values are escaped by default. To prevent double escapi
 
 ```
 abstract Html {
-  static public function fragment(raw:String):Html;
-  
-  @:from static public function escape(s:String):Html;
-  @:from static function ofMultiple(parts:Array<Html>):Html;
-  @:from static function ofAny<A>(a:A):Html;
+	public function new(s:String):Void;
+
+	@:from static public function escape(s:String):Html;
+	@:from static function ofMultiple(parts:Array<Html>):Html;
+	
+	@:from static public function of<A>(a:A):Html;
 }
 ```
 
-The return value of every template function and the type of every template variable is `tink.template.Html`, which is why it's not escaped a second time when inserted into another template string. You can use `Html.fragment` to convert a string without escaping it. In all other cases some sensible implicit conversion should occur.
+The return value of every template function and the type of every template variable is `tink.template.Html`, which is why it's not escaped a second time when inserted into another template string. You can use the constructor to convert a string without escaping it. In all other cases some sensible implicit conversion should occur.
 
 The whole point of `ofMultiple` is that `someArray.map(templateFunction)` produces sensible output.
 
 ### Other formats
 
-....
+Support for other formats such as plaintext output (i.e. without the escaping) is planned.
 
 ## Entrypoints
 

@@ -149,7 +149,7 @@ class Template {
 			ret = macro return $ret;
 		
 		return macro @:pos(pos) {
-			var ret = new tink.template.Html();
+			var ret = tink.template.Html.buffer();
 			$a{body.map(generate)};
 			$ret;
 		}
@@ -169,7 +169,7 @@ class Template {
 					macro @:pos(pos) 
 						while ($cond) ${generate(body)};
 				case Const(value, pos):
-					macro @:pos(pos) ret.add(tink.template.Html.raw($v{value}));
+					macro @:pos(pos) ret.add(new tink.template.Html($v{value}));
 				case Define(name, value):
 					macro @:pos(pos) var $name = ${generate(value)};
 				case Yield(e):
