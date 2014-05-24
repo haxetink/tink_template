@@ -4,6 +4,7 @@ using tink.CoreApi;
 
 class SimpleTest extends Base {
 	function testOne() {
-		trace(Example.print('test'));
+		var x:Example = null;
+		// trace(Example.print('test'));
 	}	
 }

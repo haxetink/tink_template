@@ -22,6 +22,7 @@ class Run {
 			buf.push(parts[0]);
 		}
 		#end	
+		
 		var r = new TestRunner();
 		for (c in tests)
 			r.add(c);
