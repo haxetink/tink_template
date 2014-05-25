@@ -275,16 +275,11 @@ Support for other formats such as plaintext output (i.e. without the escaping) i
 
 ## Entrypoints
 
-Templates can act as entrypoints (e.g. `-main` class), in which case a number of things is going to happen under the default assumption that you want to write a web app using SPOD and `haxe.web.Dispatch`. If you want a different behavior, you can register a handler with `tink.Template.mainify` that generates a different `main` method and returns `true` if you want to prevent any other default behavior.
+Templates can act as entrypoints (e.g. `-main` class), in which case a number of things is going to happen under the default assumption that you want to write a web app using `haxe.web.Dispatch`. If you want a different behavior, you can register a handler with `tink.Template.mainify` that generates a different `main` method and returns `true` if you want to prevent any other default behavior.
 
 Since `Dispatch` does not do any printing, any template functions eligible for dispatch (e.g. prefixed with `do`) will be adjusted to not return but rather print the result.
 
-If no main function is present, it will be generated so that:
-
-1. If you're using SPOD, then code is generated to initialize the db connection.
-2. The main function dispatches onto the current class object.
-
-You can just provide your own main function if you prefer.
+If no main function is present, it will be generated so that the main function dispatches onto the current class object. You can just provide your own main function if you prefer.
 
 Also, if you wish to instantiate the template class and dispatch onto instance methods, here's how you could do that:
 
@@ -299,7 +294,7 @@ Also, if you wish to instantiate the template class and dispatch onto instance m
 }::
 ```
 
-
+It's best to be used with [`tinx_autospod`](https://github.com/haxetink/tinx_autospod) for setting up the SPOD automatically.
 
 
 
