@@ -29,7 +29,11 @@ abstract Html(String) {
 			
 		flush();
 		return new Html(ret);
-	}		
+	}
+	
+	@:to public function toString():String
+		return this;
+		
 	@:from static function ofMultiple(parts:Array<Html>):Html 
 		return new Html(parts.join(''));
 		

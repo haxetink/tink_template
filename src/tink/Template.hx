@@ -18,9 +18,12 @@ using Lambda;
 class Template {
 	
 	#if macro	
+	static var initialized = false;
 	static public function use(?rebuildWith:String) {
-		MacroApi.onTypeNotFound(getType);
+		MacroApi.typeNotFound.handle(getType);
+		// It can get `Std` but not `Int` (maybe because it's not fully qualified?).
 		rebuild = rebuildWith;
+		initialized = true;
 	}
 	
 	static public function just(name:String) {
@@ -109,15 +112,18 @@ class Template {
 		return true;
 	}
 	
-	static function getType(name:String) {
-		var tail = name.replace('.', '/')+'.tpl';
-		for (path in Context.getClassPath()) {
-			var file = path + tail;
-			if (file.exists()) 
-				return parse(file, name);
+	static function getType(ref:TypeResolution)
+		switch ref.value {
+			case Left(name):
+				var tail = name.replace('.', '/')+'.tpl';
+				for (path in Context.getClassPath()) {
+					var file = path + tail;
+					if (file.exists()) 
+						ref.value = Right(parse(file, name));
+				}			
+			default:
 		}
-		return null;
-	}
+	
 	
 	static function getPos(t:TExpr)
 		return
