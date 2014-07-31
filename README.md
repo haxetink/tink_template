@@ -13,8 +13,8 @@ Let's use the `haxe.Template` example for a comparison, first setting up our dat
 
 ```
 class User {
-    var name : String;
-    var age : Int;
+    public var name : String;
+    public var age : Int;
     public function new(name,age) {
         this.name = name;
         this.age = age;    
@@ -22,8 +22,8 @@ class User {
 }
 
 class Town {
-  var name : String;
-  var users : Array<User>;
+  public var name : String;
+  public var users : Array<User>;
   public function new( name ) {
     this.name = name;
     users = new Array();
@@ -234,7 +234,7 @@ All other functions are plain functions, an example being this one:
 ::
 ```
 
-#### Metadata
+#### Expression Level Metadata
 
 You can use expression level metadata on all expressions. It will be forwarded to the output and can be picked up by other macros later. Syntax is just like with Haxe. Example:
 
@@ -246,9 +246,15 @@ You can use expression level metadata on all expressions. It will be forwarded t
 
 ### Member declarations
 
-Member declarations work exactly like variable and function declarations, only they can have the common access modifiers (`static`, `private`, ...). Note that by default, all members are `public` and you must declare them `private` explicitly (seems fair for templates, no?).
+Member declarations work exactly like variable and function declarations, only they can have the common access modifiers (`static`, `private`, ...). Note that by default, all members are `public` and you must declare them `private` explicitly (seems fair for templates, no?). Members also support metadata.
 
-At the top level, you may only have member declarations. And whitespace.
+### Class level declarations
+
+The following class level declarations are supported:
+
+- `::implements <Interface>::` adds an interface
+- `::extends <Class>::` adds a super class
+- `::@<meta> this::` adds meta data to the template class
 
 ## Escaping
 
