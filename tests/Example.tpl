@@ -24,6 +24,7 @@
 
 ::static function test()::
 	::var x = 15::
+  ::'foo $x'::
 	::while x > 1::
 		::switch x::
 			::case 14:: ::x = 4::

@@ -3,6 +3,7 @@ package tink.template;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 
+using haxe.macro.Tools;
 using tink.CoreApi;
 using tink.MacroApi;
 
@@ -87,8 +88,19 @@ class Parser {
 		return TExpr.Block(ret);
 	}
 
+  static function parseHx(s:String, pos:Position)
+    return 
+      try 
+        Context.parseInlineString(s, pos).transform(function (e) return switch e.expr {
+          case EConst(CString(s)):
+            s.formatString(e.pos);
+          default: e;
+    		})
+      catch (e:Dynamic)
+        pos.error('Invalid string "$s');
+
 	function parseSimple():Expr
-		return Context.parse(until('::'), getPos());
+		return parseHx(until('::'), getPos());
 
 	function parseInline():TExpr {
 		var v = parseSimple();
@@ -176,7 +188,7 @@ class Parser {
 							TemplateField(setKind(), parseToEnd());
 						else 
 							VanillaField(
-								switch Context.parse('var foo '+until('::'), getPos()) {
+								switch parseHx('var foo '+until('::'), getPos()) {
 									case { expr: EVars([v]) }: setKind(v.type, v.expr);
 									case v: v.reject();
 								}
@@ -200,7 +212,7 @@ class Parser {
 	
 	function parseSuperType(isClass:Bool) 
 		return
-			switch Context.parseInlineString('new ' + until('::') + '()', getPos()) {
+			switch parseHx('new ' + until('::') + '()', getPos()) {
 				case { expr: ENew(t, _), pos: pos }:
 					SuperType(t, isClass, pos);
 				default: 
@@ -224,9 +236,13 @@ class Parser {
 			}
 			else 
 				until('::');
-		
+		var fname = 
+      switch name {
+        case 'new': '';
+        case _: name;
+      }
 		var func = 
-			switch Context.parseInlineString('function $name($args) $fBody', getPos()) {
+			switch parseHx('function $fname($args) $fBody', getPos()) {
 				case { expr: EFunction(_, f) }:
 					if (tpl != null)
 						f.expr = null;
@@ -287,7 +303,7 @@ class Parser {
 	
 	static function exprList(source:String, pos) 
 		return
-			switch Context.parseInlineString('[$source]', pos) {
+			switch parseHx('[$source]', pos) {
 				case macro [$a{args}]:
 					args;
 				default: 

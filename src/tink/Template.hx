@@ -177,7 +177,7 @@ class Template {
 				case Const(value, pos):
 					macro @:pos(pos) ret.add(new tink.template.Html($v{value}));
 				case Define(name, value):
-					macro @:pos(pos) var $name = ${generate(value)};
+					macro @:pos(pos) var $name = ${functionBody(value)};
 				case Yield(e):
 					macro @:pos(e.pos) ret.add($e);
 				case Do(e):
