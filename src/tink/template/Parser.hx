@@ -219,11 +219,15 @@ class Parser {
 					throw 'assert';
 			}			
 	
+  
 	function parseFunction() {
 		var name = ident().sure();
 		
 		skipWhite();
-		
+    var params = 
+		  if (isNext('<')) '<' + balanced('<', '>') + '>';
+      else '';
+      
 		var args = getArgs();
 		
 		skipWhite();
@@ -242,7 +246,7 @@ class Parser {
         case _: name;
       }
 		var func = 
-			switch parseHx('function $fname($args) $fBody', getPos()) {
+			switch parseHx('function $fname$params($args) $fBody', getPos()) {
 				case { expr: EFunction(_, f) }:
 					if (tpl != null)
 						f.expr = null;
@@ -310,16 +314,19 @@ class Parser {
 					throw 'assert';
 			}
 		
-	function getArgs() {
+  inline function getArgs() 
+    return balanced('(', ')');
+  
+  function balanced(open:String, close:String) {
 		var start = pos;
 		var ret = '';
 		do {
-			until(')');
+			until(close);
 			ret = source.substring(start + 1, pos - 1);
-		} while (ret.split('(').length > ret.split(')').length);		
+		} while (ret.split(open).length > ret.split(close).length);		
 		last = start;
-		return ret;
-	}
+		return ret;    
+  }
 	
 	function parseMeta()
 		return
