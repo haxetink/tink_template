@@ -437,13 +437,19 @@ class Parser {
 						expect('::');
 						var cases = [
 							while (allow('case')) {
-								var c = {
-									values: exprList(until('::'), getPos()),
-									guard: null, //TODO: implement?
-									expr: parseFull(),
-								};
-								expect('::');
-								c;
+                var src = until('::');
+                switch parseHx('switch _ { case $src: }', getPos()) {
+                  case { expr: ESwitch(_, [c], _) } if (c.expr == null): 
+                    var ret = {
+                      values: c.values,
+                      guard: c.guard,
+                      expr: parseFull(),
+                    }
+                    expect('::');
+                    ret;
+                  case e:
+                    e.reject('invalid case statement: ${e.toString()}');
+                }
 							}
 						];
 						expect('end::');
