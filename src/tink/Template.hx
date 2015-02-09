@@ -1,4 +1,5 @@
 package tink;
+import haxe.io.Path;
 
 #if macro
 import haxe.macro.*;
@@ -16,7 +17,23 @@ using Lambda;
 #end
 
 class Template {
-	
+	macro static function include():Array<Field> {
+		var file = Context.getPosInfos(Context.currentPos()).file;
+		file = Path.withoutExtension(file) + '.tpl';
+		var ret = parse(file, Path.withoutExtension(Path.withoutDirectory(file)));
+		
+		switch ret.meta {
+			case null, []:
+			default: ret.meta[0].pos.error('metadata not supported for included templates');
+		}
+		//trace(ret.kind);
+		switch ret.kind {
+			case TDClass(null, [], false | null):
+			case TDClass(_, _ , _): ret.pos.error('cannot use extends/implements in included templates');
+			default: throw 'assert';
+		}
+		return Context.getBuildFields().concat(ret.fields);
+	}
 	#if macro	
 	static var initialized = false;
 	static public function use(?rebuildWith:String) {

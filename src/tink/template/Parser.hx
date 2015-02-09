@@ -467,12 +467,27 @@ class Parser {
 		}
 	}
 	
+	function collapseWhite(s:String) {
+		return s;
+		var ret = new StringBuf(),
+			i = 0;
+			
+		while (i < s.length)
+			if (s.charCodeAt(i) < 33) {
+				ret.addChar(32);
+				while (s.charCodeAt(i) < 33) i++; 
+			}
+			else ret.addChar(s.charCodeAt(i++));
+			
+		return ret.toString();
+	}
+	
 	function parse():TExpr
 		return
 			if (allow('::')) 
 				parseComplex();
 			else {
 				var pos = getPos();
-				Const(until('::', true), pos);
+				Const(collapseWhite(until('::', true)), pos);
 			}
 }
