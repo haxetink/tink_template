@@ -2,32 +2,11 @@ package tink.template;
 
 import haxe.macro.Expr;
 import haxe.macro.Context;
+import tink.template.TplExpr;
 
 using haxe.macro.Tools;
 using tink.CoreApi;
 using tink.MacroApi;
-
-enum TExpr {
-	Const(value:String, pos:Position);
-	Meta(data:Metadata, expr:TExpr);
-	Yield(e:Expr);
-	Do(e:Expr);
-	Var(a:Array<Var>);
-	Define(name:String, value:TExpr);
-	If(cond:Expr, cons:TExpr, ?alt:TExpr);
-	For(target:Expr, body:TExpr, ?legacy:Bool);
-	While(cond:Expr, body:TExpr);
-	Function(name:String, args:Array<FunctionArg>, body:TExpr);
-	Switch(target:Expr, cases:Array<{ values:Array<Expr>, ?guard:Expr, expr: TExpr }>);
-	Block(exprs:Array<TExpr>);
-}
-
-enum TDecl {
-	VanillaField(f:Field);
-	TemplateField(f:Field, expr:TExpr);
-	SuperType(t:TypePath, isClass:Bool, pos:Position);
-	Meta(m:Metadata);
-}
 
 class Parser {
 	
@@ -81,11 +60,11 @@ class Parser {
 	function getPos()
 		return Context.makePosition({ min: last, max: pos, file: file });
 	
-	function parseFull():TExpr {
+	function parseFull():TplExpr {
 		var ret = [parse()];
 		while (!isNext('::end::') && !isNext('::else') && !isNext('::case') && pos < source.length)
 			ret.push(parse());
-		return TExpr.Block(ret);
+		return TplExpr.Block(ret);
 	}
 
   static function parseHx(s:String, pos:Position)
@@ -102,7 +81,7 @@ class Parser {
 	function parseSimple():Expr
 		return parseHx(until('::'), getPos());
 
-	function parseInline():TExpr {
+	function parseInline():TplExpr {
 		var v = parseSimple();
 		return
 			switch v {
@@ -153,8 +132,8 @@ class Parser {
 				parseSuperType(true);
 			else {
 				var meta = parseMeta();
-				if (allow('this')) 
-					Meta(meta);
+				if (allow('::')) 
+					TplDecl.Meta(meta);
 				else {
 					var field:Field = {
 						pos: null,
@@ -283,7 +262,7 @@ class Parser {
 		
 		expect('@');
 		
-		var name = (allow(':') ? ':' : '') + ident();
+		var name = (allow(':') ? ':' : '') + ident().sure();
 		var ret = {
 			name: name,
 			pos: getPos(),
@@ -338,7 +317,7 @@ class Parser {
 		return ret;
 	}
 	
-	function finishLoop(loop:TExpr) {
+	function finishLoop(loop:TplExpr) {
 		if (allow('::else::')) {
 			var alt = parseToEnd();
 			var tmp = MacroApi.tempName();
@@ -482,7 +461,7 @@ class Parser {
 		return ret.toString();
 	}
 	
-	function parse():TExpr
+	function parse():TplExpr
 		return
 			if (allow('::')) 
 				parseComplex();
