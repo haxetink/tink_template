@@ -124,70 +124,117 @@ class Parser {
 		return ret;
 	}
 	
+	function parseField(field:Field, ?token) 
+		return
+			switch if (token == null) ident() else token {
+				case Success('var'):
+					skipWhite();
+					
+					field.name = ident().sure();
+					field.pos = getPos();
+					skipWhite();
+					var prop = 
+						if (isNext('(')) 
+							switch getArgs().split(',') {
+								case [get, set]: 
+									new Pair(get, set);
+								default: 
+									getPos().error('malformed field access');
+							}
+						else new Pair('default', 'default');
+							
+					skipWhite();
+					
+					function setKind(?t, ?e) {
+						field.kind = FProp(prop.a, prop.b, t, e);
+						return field;
+					}
+					
+					if (allow('::')) 
+						TemplateField(setKind(), parseToEnd());
+					else 
+						VanillaField(
+							switch parseHx('var foo '+until('::'), getPos()) {
+								case { expr: EVars([v]) }: setKind(v.type, v.expr);
+								case v: v.reject();
+							}
+						);
+				case Success('function'):
+					skipWhite();
+					var f = parseFunction();
+					field.name = f.name;
+					field.pos = f.pos;
+					field.kind = FFun(f.func);
+					
+					if (f.tpl == null) 
+						VanillaField(field);
+					else
+						TemplateField(field, f.tpl);
+				case Success(v):
+					getPos().error('unexpected identifier $v');
+				case f:
+					getPos().error('Invalid toplevel declaration');	
+			}
+		
+	
 	function parseDecl() 
 		return
-			if (allow('implements '))
-					parseSuperType(false);
-			else if (allow('extends '))
-				parseSuperType(true);
-			else {
-				var meta = parseMeta();
-				if (allow('::')) 
-					TplDecl.Meta(meta);
-				else {
-					var field:Field = {
-						pos: null,
-						name: null,
-						meta: meta,
-						access: parseAccess(),
-						kind: null
-					};
-					if (allow('var ')) {
-						field.name = ident().sure();
-						field.pos = getPos();
-						skipWhite();
-						var prop = 
-							if (isNext('(')) 
-								switch getArgs().split(',') {
-									case [get, set]: 
-										new Pair(get, set);
-									default: 
-										getPos().error('malformed field access');
-								}
-							else new Pair('default', 'default');
+			switch parseMeta() {
+				case []:
+					switch parseAccess() {
+						case []:
+							switch ident() {
+								case Success('implements'):
+									parseSuperType(false);
+								case Success('extends'):
+									parseSuperType(true);
+								case Success('import'):
+									var parts = [],
+											mode = INormal;
+									while (true) {
+										skipWhite();
+										
+										if (allow('*')) {
+											mode = IAll;
+											skipWhite();
+											expect('::');
+										}
+										
+										switch ident().sure() {
+											case 'in': 
+												skipWhite();
+												mode = IAsName(ident().sure());
+												skipWhite();
+												expect('::');
+												break;
+												
+											case v: 
+												parts.push(v);
+												skipWhite();
+												if (allow('::')) break;
+												expect('.');
+										}
+									}
+									Import(parts.join('.'), mode, getPos());
 								
-						skipWhite();
-						
-						function setKind(?t, ?e) {
-							field.kind = FProp(prop.a, prop.b, t, e);
-							return field;
-						}
-						
-						if (allow('::')) 
-							TemplateField(setKind(), parseToEnd());
-						else 
-							VanillaField(
-								switch parseHx('var foo '+until('::'), getPos()) {
-									case { expr: EVars([v]) }: setKind(v.type, v.expr);
-									case v: v.reject();
-								}
-							);
+								case Success('using'):
+									
+									throw 'not implemented';
+								
+								case v:
+									
+									parseField({ pos: null, name: null, kind: null }, v);
+							}
+						case access:
+							parseField({ pos: null, name: null, kind: null, access: access });
 					}
-					else if (allow('function ')) {
-						var f = parseFunction();
-						field.name = f.name;
-						field.pos = f.pos;
-						field.kind = FFun(f.func);
-						
-						if (f.tpl == null) 
-							VanillaField(field);
-						else
-							TemplateField(field, f.tpl);
-					}
-					else	
-						getPos().error('Invalid toplevel declaration');
-				}
-			}	
+				case v:
+					skipWhite();
+					if (allow('::'))
+						TplDecl.Meta(v);
+					else 
+						parseField({ pos: null, name: null, kind: null, access: parseAccess(), meta: v });
+			}
 	
 	function parseSuperType(isClass:Bool) 
 		return
