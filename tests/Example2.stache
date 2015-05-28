@@ -1,0 +1,45 @@
+{{@:tink}}
+
+{{@:foo(1, 2, 3) static function print(title)}}
+<html>
+  <head>
+    <title>{{title}}</title>
+  </head>
+  <body>
+    <h1>YO!</h1>
+    <p>This mah template, yo!</p>
+     {{function dup(x) return x * 2;}}
+    <ol>
+       {{for i in 0...3}}
+        <li>{{dup(i)}}</li>
+       {{end}}
+    </ol>
+    
+     {{foreach ['fooo', 'bar']}}
+      <span>{{length}}</span>
+     {{end}}
+  </body>
+</html>
+{{end}}
+
+{{static function test()}}
+  {{var x = 15}}
+  {{'foo $x'}}
+   {{while x > 1}}
+     {{switch x}}
+       {{case 14}}  {{x = 4}}
+       {{case v}}  {{--x}}
+     {{end}}
+   {{end}}
+   {{'<3'}}
+   {{while false}}
+   {{else}}
+    yes!!
+   {{end}}
+   {{while x > 0}}
+     {{x = -1}}
+   {{else}}
+    no!!
+   {{end}}
+  
+{{end}}

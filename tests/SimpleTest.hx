@@ -16,6 +16,10 @@ using haxe.Json;
 		assertEquals(["foo 15","14","4","3","2","1","&lt;3","yes!!","-1"].join('##'), lines.join('##'));
 	}	
 	
+	function testStache() {
+		assertEquals(Example.print('foo'), Example2.print('foo'));
+	}
+	
 	function testMerge() {
 		assertEquals(Example.print('foo'), Merged.print('foo'));
 		assertEquals(Example.print('foo'), Merged.print('foo'));

@@ -16,11 +16,14 @@ class Template {
 		var frontends = [
 			new Frontend(['mtt'], '::', '::'),
 			new Frontend(['stache'], '{{', '}}'),
-			//new Frontend(['smile'], '(:', ':)'),
+			new Frontend(['smile'], '(:', ':)'),
 		];
 		
-		for (f in frontends)
-			SyntaxHub.frontends.whenever(f);
+		for (f in frontends) {
+			var list = f.extensionList.copy();
+			list.sort(Reflect.compare);
+			SyntaxHub.frontends.whenever(f, 'tink.Template::'+list.join('_'));
+		}
 			
 		SyntaxHub.classLevel.before('tink.lang.', function (c:ClassBuilder) {
 			var changed = false;

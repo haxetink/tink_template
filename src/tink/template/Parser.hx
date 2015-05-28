@@ -522,6 +522,6 @@ class Parser {
 				parseComplex();
 			else {
 				var pos = getPos();
-				Const(collapseWhite(until(closeTag, true)), pos);
+				Const(collapseWhite(until(openTag, true)), pos);
 			}
 }
