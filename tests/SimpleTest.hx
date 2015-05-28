@@ -1,10 +1,33 @@
 package ;
 
 using tink.CoreApi;
+using StringTools;
+using haxe.Json;
 
-class SimpleTest extends Base {
-	function testOne() {
-		var x:Example = null;
-		// trace(Example.print('test'));
+@:tink class SimpleTest extends Base {
+	function testMisc() {
+		Example.print('foo');
+		var lines = [for (line in Example.test().toString().split('\n'))
+			switch line.trim() {
+				case '':
+				case v: v;
+			}
+		];
+		assertEquals(["foo 15","14","4","3","2","1","&lt;3","yes!!","-1"].join('##'), lines.join('##'));
 	}	
+	
+	function testMerge() {
+		assertEquals(Example.print('foo'), Merged.print('foo'));
+		assertEquals(Example.print('foo'), Merged.print('foo'));
+		
+		var frame = Merged.frame({
+			title: 'Hello World', 
+			content: 'Hello, Hello!'
+		});
+		
+		
+		var title = ~/<title>(.*)<\/title>/;
+		assertTrue(title.match(frame));
+		assertEquals('Hello World', title.matched(1));
+	}
 }

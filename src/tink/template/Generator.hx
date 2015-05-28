@@ -2,6 +2,7 @@ package tink.template;
 
 import haxe.macro.Expr;
 import tink.syntaxhub.FrontendContext;
+import tink.template.TplExpr.TplDecl;
 
 using haxe.macro.Context;
 using tink.MacroApi;
@@ -110,7 +111,7 @@ class Generator {
 		return ret;
 	}		
 	
-	static function functionBody(body:TplExpr, ?withReturn:Bool):Expr {
+	static public function functionBody(body:TplExpr, ?withReturn:Bool):Expr {
 		var pos = getPos(body);
 		var body = [body];
 		if (Context.defined('debug'))
@@ -127,10 +128,21 @@ class Generator {
 		}
 	}
 	
-	static public function generate(decl:Array<TplExpr.TplDecl>, into:FrontendContext) {
+	static public function finalizeField(f:Field, expr:TplExpr) 
+		switch f.kind {
+			case FFun(f):
+				f.expr = functionBody(expr, true);
+			case FVar(t, _):
+				f.kind = FVar(t, functionBody(expr));
+			case FProp(get, set, t, _):
+				f.kind = FProp(get, set, t, functionBody(expr));
+		}
+	
+	static public function generate(ast:{ pos: Position, declarations: Array<TplExpr.TplDecl> }, into:FrontendContext) {
 		
-		var className = into.name;
-		var type = into.getType(into.name);
+		var fallback = macro class { };
+		fallback.pos = ast.pos;
+		var type = into.getType(fallback);
 		
 		switch type.kind {
 			case TDClass(_, _, false), TDAbstract(_, _, _):
@@ -138,7 +150,7 @@ class Generator {
 				type.pos.error('Type must be abstract or class to be augmented with template in ${type.pos.getPosInfos().file}');
 		}
 		
-		for (decl in decl)
+		for (decl in ast.declarations)
 			switch decl {
 				case SuperType(t, true, pos):
 					type.kind =
@@ -171,14 +183,7 @@ class Generator {
 					
 				case TemplateField(f, tpl):
 					type.fields.push(f);
-					switch f.kind {
-						case FFun(f):
-							f.expr = functionBody(tpl, true);
-						case FVar(t, _):
-							f.kind = FVar(t, functionBody(tpl));
-						case FProp(get, set, t, _):
-							f.kind = FProp(get, set, t, functionBody(tpl));
-					}				
+					finalizeField(f, tpl);
 			}
 			
 		for (f in type.fields)

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>::title::</title>
+	::for s in scripts::
+		<script type="javascript" src="::s::"></script>
+	::end::
+	::for s in stylesheets::
+		<link rel="stylesheet" href="::s::">
+	::end::
+</head>
+<body>
+	::content::
+</body>
+</html>

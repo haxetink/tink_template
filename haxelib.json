@@ -3,13 +3,12 @@
 	"url" : "http://haxetink.org/tink_template",
 	"license": "MIT",
 	"tags": ["tink", "cross", "utility", "template"],
-	"description": "Tinkerbell Core",
-	"version": "0.0.0",
+	"description": "Tinkerbell template Language",
+	"version": "0.1.0",
 	"releasenote": "Initial release",
 	"contributors": ["back2dos"], 
   "dependencies": {
-    "tink_macro": "",
-    "tink_priority": ""
+    "tink_syntaxhub",
   },
 	"classPath": "src" 
 }

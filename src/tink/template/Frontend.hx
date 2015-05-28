@@ -1,21 +1,82 @@
 package tink.template;
 
+import haxe.macro.Expr;
 import tink.syntaxhub.*;
 
 using sys.io.File;
+using sys.FileSystem;
+using tink.MacroApi;
 
 class Frontend implements FrontendPlugin {	
 
 	public var extensionList(default, null):Array<String>;
-	public function new(extensions) 
+	
+	var openTag:String;
+	var closeTag:String;
+	
+	public function new(extensions, openTag, closeTag) {
 		this.extensionList = extensions;
+		this.openTag = openTag;
+		this.closeTag = closeTag;
+	}
 	
 	public function extensions()
 		return extensionList.iterator();
+	
+	public function parseField(file:String, m:Member) {
+		if (!file.exists())
+			m.pos.error('Unknown file $file');
+		
+		function parse(withReturn)
+			return
+				Generator.functionBody(
+					new Parser(file.getContent(), file, openTag, closeTag).parseFull(),
+					withReturn
+				);
+				
+		m.kind = 		
+			switch m.kind {
+				case FVar(t, null):
+					if (t == null)
+						t = TYPE;
+					FVar(t, parse(false));
+				case FProp(get, set, t, null):
+					if (t == null)
+						t = TYPE;
+					FProp(get, set, t, parse(false));
+				case FFun({ expr: null }):
+					var f = Reflect.copy(m.getFunction().sure());
+					f.expr = parse(true);
+					FFun(f);
+				case FVar(_, { pos: pos }) | FProp(_, _, _, { pos: pos }) | FFun({ expr: { pos: pos}}):
+					pos.error('@:template does not permit expression here');
+			}
+	}
+	static var TYPE = macro : tink.template.Html;
+	public function parseFields(file:String, c:ClassBuilder) {
+		for (d in new Parser(file.getContent(), file, openTag, closeTag).parseAll().declarations)
+			switch d {
+				case VanillaField(f):
+					c.addMember(f).publish();
+					
+				case TemplateField(f, expr):
+					Generator.finalizeField(f, expr);
+					c.addMember(f).publish();
+				case Meta(m):
+					for (m in m)
+						c.target.meta.add(m.name, m.params, m.pos);
+				case SuperType(_, isClass, pos):
+					pos.error((if (isClass) 'extends' else 'implements') + ' not allowed in @:template templates');					
+				case Import(_, _, pos):
+					pos.error('import not allowed in @:template templates');
+				case Using(_, pos):
+					pos.error('using not allowed in @:template templates');
+			}
+	}
 		
 	public function parse(file:String, context:FrontendContext):Void {
 		Generator.generate(
-			new Parser(file.getContent(), file).parseAll(),
+			new Parser(file.getContent(), file, openTag, closeTag).parseAll(),
 			context
 		);
 	}	

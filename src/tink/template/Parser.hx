@@ -15,11 +15,16 @@ class Parser {
 	var file:String;
 	var source:String;	
 	
-	public function new(source, file) {
+	var openTag:String;
+	var closeTag:String;
+	
+	public function new(source, file, openTag, closeTag) {
 		this.source = source;
 		this.file = file;
 		this.pos = 0;
 		this.last = 0;
+		this.openTag = openTag;
+		this.closeTag = closeTag;
 	}
 
 	function isNext(s) 
@@ -60,9 +65,9 @@ class Parser {
 	function getPos()
 		return Context.makePosition({ min: last, max: pos, file: file });
 	
-	function parseFull():TplExpr {
+	public function parseFull():TplExpr {
 		var ret = [parse()];
-		while (!isNext('::end::') && !isNext('::else') && !isNext('::case') && pos < source.length)
+		while (!isNext('${openTag}end${closeTag}') && !isNext('${openTag}else') && !isNext('${openTag}case') && pos < source.length)
 			ret.push(parse());
 		return TplExpr.Block(ret);
 	}
@@ -79,7 +84,7 @@ class Parser {
         pos.error('Invalid string "$s');
 
 	function parseSimple():Expr
-		return parseHx(until('::'), getPos());
+		return parseHx(until(closeTag), getPos());
 
 	function parseInline():TplExpr {
 		var v = parseSimple();
@@ -117,11 +122,14 @@ class Parser {
 	public function parseAll() {
 		skipWhite();
 		var ret = [];
-		while (allow('::')) {
+		while (allow(openTag)) {
 			ret.push(parseDecl());
 			skipWhite();
 		}
-		return ret;
+		return {
+			pos: Context.makePosition( { min: 0, max: source.length, file: file } ),
+			declarations: ret,
+		}
 	}
 	
 	function parseField(field:Field, ?token) 
@@ -150,11 +158,11 @@ class Parser {
 						return field;
 					}
 					
-					if (allow('::')) 
+					if (allow(closeTag)) 
 						TemplateField(setKind(), parseToEnd());
 					else 
 						VanillaField(
-							switch parseHx('var foo '+until('::'), getPos()) {
+							switch parseHx('var foo '+until(closeTag), getPos()) {
 								case { expr: EVars([v]) }: setKind(v.type, v.expr);
 								case v: v.reject();
 							}
@@ -197,7 +205,7 @@ class Parser {
 										if (allow('*')) {
 											mode = IAll;
 											skipWhite();
-											expect('::');
+											expect(closeTag);
 										}
 										
 										switch ident().sure() {
@@ -205,13 +213,13 @@ class Parser {
 												skipWhite();
 												mode = IAsName(ident().sure());
 												skipWhite();
-												expect('::');
+												expect(closeTag);
 												break;
 												
 											case v: 
 												parts.push(v);
 												skipWhite();
-												if (allow('::')) break;
+												if (allow(closeTag)) break;
 												expect('.');
 										}
 									}
@@ -230,7 +238,7 @@ class Parser {
 					}
 				case v:
 					skipWhite();
-					if (allow('::'))
+					if (allow(closeTag))
 						TplDecl.Meta(v);
 					else 
 						parseField({ pos: null, name: null, kind: null, access: parseAccess(), meta: v });
@@ -238,7 +246,7 @@ class Parser {
 	
 	function parseSuperType(isClass:Bool) 
 		return
-			switch parseHx('new ' + until('::') + '()', getPos()) {
+			switch parseHx('new ' + until(closeTag) + '()', getPos()) {
 				case { expr: ENew(t, _), pos: pos }:
 					SuperType(t, isClass, pos);
 				default: 
@@ -260,19 +268,19 @@ class Parser {
 		
 		var tpl = null;
 		var fBody = 
-			if (allow('::')) {
+			if (allow(closeTag)) {
 				tpl = parseToEnd();
 				'{}';
 			}
 			else 
-				until('::');
+				until(closeTag);
 		var fname = 
       switch name {
         case 'new': '';
         case _: name;
       }
 		var func = 
-			switch parseHx('function $fname$params($args) $fBody', getPos()) {
+			switch parseHx('function $fname$params($args) { $fBody }', getPos()) {
 				case { expr: EFunction(_, f) }:
 					if (tpl != null)
 						f.expr = null;
@@ -360,12 +368,12 @@ class Parser {
 	
 	function parseToEnd() {
 		var ret = parseFull();
-		expect('::end::');
+		expect('${openTag}end${closeTag}');
 		return ret;
 	}
 	
 	function finishLoop(loop:TplExpr) {
-		if (allow('::else::')) {
+		if (allow('${openTag}else${closeTag}')) {
 			var alt = parseToEnd();
 			var tmp = MacroApi.tempName();
 			var wasRun = Do(macro $i{tmp} = true);
@@ -393,7 +401,7 @@ class Parser {
 				If(macro !$i{tmp}, alt, null)
 			]);
 		}
-		else expect('::end::');
+		else expect('${openTag}end${closeTag}');
 		return loop;
 	}
 	
@@ -409,7 +417,7 @@ class Parser {
 			else if (allow('while ')) 
 				finishLoop(While(parseSimple(), parseFull()));
 			else if (allow('*')) {
-				until('*::');
+				until('*$closeTag');
 				Block([]);
 			}
 			else if (allow('do ')) 
@@ -423,11 +431,11 @@ class Parser {
 						then: parseFull()
 					});
 				next();
-				while (allow('::elseif') || allow('::else if')) 
+				while (allow('${openTag}elseif') || allow('${openTag} if')) 
 					next();
-				if (allow('::else::'))
+				if (allow('${openTag}else${closeTag}'))
 					alt = parseFull();
-				expect('::end::');
+				expect('${openTag}end${closeTag}');
 				
 				while (cases.length > 0)
 					switch cases.pop() {
@@ -460,10 +468,10 @@ class Parser {
 						var target = parseSimple();
 						skipWhite();
 						
-						expect('::');
+						expect(openTag);
 						var cases = [
 							while (allow('case')) {
-                var src = until('::');
+                var src = until(closeTag);
                 switch parseHx('switch _ { case $src: }', getPos()) {
                   case { expr: ESwitch(_, [c], _) } if (c.expr == null): 
                     var ret = {
@@ -471,14 +479,14 @@ class Parser {
                       guard: c.guard,
                       expr: parseFull(),
                     }
-                    expect('::');
+                    expect(openTag);
                     ret;
                   case e:
                     e.reject('invalid case statement: ${e.toString()}');
                 }
 							}
 						];
-						expect('end::');
+						expect('end$closeTag');
 						Switch(target, cases);
 					default:
 						pos = start;
@@ -510,10 +518,10 @@ class Parser {
 	
 	function parse():TplExpr
 		return
-			if (allow('::')) 
+			if (allow(openTag)) 
 				parseComplex();
 			else {
 				var pos = getPos();
-				Const(collapseWhite(until('::', true)), pos);
+				Const(collapseWhite(until(closeTag, true)), pos);
 			}
 }
