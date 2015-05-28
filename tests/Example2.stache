@@ -10,14 +10,14 @@
     <p>This mah template, yo!</p>
      {{function dup(x) return x * 2;}}
     <ol>
-       {{for i in 0...3}}
+      {{for i in 0...3}}
         <li>{{dup(i)}}</li>
-       {{end}}
+      {{end}}
     </ol>
     
-     {{foreach ['fooo', 'bar']}}
+    {{foreach ['fooo', 'bar']}}
       <span>{{length}}</span>
-     {{end}}
+    {{end}}
   </body>
 </html>
 {{end}}
@@ -25,21 +25,21 @@
 {{static function test()}}
   {{var x = 15}}
   {{'foo $x'}}
-   {{while x > 1}}
-     {{switch x}}
-       {{case 14}}  {{x = 4}}
-       {{case v}}  {{--x}}
-     {{end}}
-   {{end}}
-   {{'<3'}}
-   {{while false}}
-   {{else}}
+    {{while x > 1}}
+      {{switch x}}
+        {{case 14}}  {{x = 4}}
+        {{case v}}  {{--x}}
+      {{end}}
+    {{end}}
+  {{'<3'}}
+  {{while false}}
+  {{else}}
     yes!!
-   {{end}}
-   {{while x > 0}}
-     {{x = -1}}
-   {{else}}
+  {{end}}
+  {{while x > 0}}
+    {{x = -1}}
+  {{else}}
     no!!
-   {{end}}
+  {{end}}
   
 {{end}}

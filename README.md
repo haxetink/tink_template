@@ -2,13 +2,23 @@
 
 This library adds compile time support for a `haxe.Template` like string based template language. Using it, templates always end up as actual methods on Haxe classes. Think of it as a superset of Haxe, that makes concatenating strings particularly easy. It is still statically typed and supports using, macros and what not.
 
-The library supports a number of modes:
-	
-1. mtt: This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops
-2. hbt: A mode similar to handlebars designating statements between `{{` and `}}`
-3. phx: A mode similar to PHP designating statements between `<?` and `?>`
+## Modes
 
-The mode is ordinarily determined by template file extension.
+The library supports two modes:
+	
+1. mtt (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops
+2. tt (Tink Template): A mode similar to handlebars designating statements between `(:` and `:)`. That's right, a template language based on smileys. How cool is that? :)
+
+The mode is determined by template file extension.
+
+### Custom modes
+
+Other modes can be added with `--macro tink.Template.use('ext1,ext2,ext3', 'beginStatement', 'endStatement', allowForeach)`.
+While this can easily be mistaken for an opportunity to obsess over syntax, it mostly for these uses:
+	
+1. Use `tink_template` on other file extensions, e.g. with `--macro tink.Template.use('html', '::', '::', true)` to simply get the mtt syntax in html files.
+2. Use different delimiters, because they have a meaning in the language you are generating (you could have templates that create templates for example)
+3. Make it a bit less tedious to consume other syntax, e.g. with `--macro tink.Template.use('stache', '<?hhp', '?>', true)` to hhp templates.
 
 # Usage
 
@@ -18,19 +28,20 @@ With `-lib tink_template` there are three different ways to use templates:
 2. template frontend
 3. class template mixin
 
-Let's have a look at those.
+Let's have a look at those!
 
 ## Template fields
 
 This approach comes down to something very similar to haxe templates. The templates are added to fields by giving them a `@:template` metadata.
 
 ### Template Resolution
-	
+
+When templates are specified with the `@:template` metadata, there are two possibilities:
+
 1. `@:template`: This will look in the current package for any file matching the field name.
 2. `@:template("filename.mode")`: This will look for the given file name in the current package and parse it with the mode as defined by the extension.
-3. `@:template("filename.ext" => mode)`: Works pretty much like the above, except that it allows you to specify a mode by hand. Useful if you don't want to rename the template for whatever reasons.
 
-Notice that to find the template file, `tink_template` looks into *all* classpaths. This is to give you the option to have your templates and haxe files in different folders, although it is actually suggested to keep them together.
+Note that to find the template file, `tink_template` looks into *all* classpaths. This is to give you the option to have your templates and haxe files in different folders, although it is actually suggested to keep them together.
 
 ### Basic example
 
@@ -102,7 +113,7 @@ class Town {
     town.addUser(new User("Akambo", 2));
     town;
   }
-	@:template function renderTown(); <---- this is new!
+	@:template function renderTown(); <---- this bit is new!
 }
 ```
 
@@ -137,22 +148,22 @@ Statements start with a keyword. Anything else is considered a Haxe expression a
 
 #### Not outputting
 
-To have code that causes side effects but no ouput, you can use `{{do $expr}}`, e.g. `{{do i++}}` which will just increment the variable as opposed to `{{i++}}` which will also print its value prior to incrementing.
+To have code that causes side effects but no ouput, you can use `(: do $expr :)`, e.g. `(: do i++ :)` which will just increment the variable as opposed to `(: i++ :)` which will also print its value prior to incrementing.
 
 #### Conditionals
 
-Conditionals work exactly as in `haxe.Template` as shown above: You have an `{{if $expr}}`, which can be followed by a sequence of `{{elseif $expr}}` clauses and an optional `{{else}}` and finally terminated by `{{end}}`.
+Conditionals work exactly as in `haxe.Template` as shown above: You have an `(: if $expr :)`, which can be followed by a sequence of `(: elseif $expr :)` clauses and an optional `(: else :)` and finally terminated by `(: end :)`.
 
 #### Switch
 
 Switch statements are quite similar to Haxe. Example:
 
 ```
-{{switch fruit}}
-  {{case 'kiwi', 'lemon'}} sour
-  {{case 'banana'}} sweet
-  {{case v}} unknown
-{{end}}
+(: switch fruit :)
+  (: case 'kiwi', 'lemon' :) sour
+  (: case 'banana' :) sweet
+  (: case v :) unknown
+(: end :)
 ```
 
 Note that there is no `default` branch as you can use a capture-all case statement.
@@ -162,9 +173,9 @@ Note that there is no `default` branch as you can use a capture-all case stateme
 For loops look a lot like their Haxe counterpart:
 
 ```
-{{for u in t.users}}
-  <li>{{user(u)}}</li>
-{{end}}
+(: for u in t.users :)
+  <li>(: user(u) :)</li>
+(: end :)
 ```
 
 There's not much to it, really.
@@ -178,20 +189,20 @@ For compatibility reasons, there's also support for foreach loops, but they are 
 While loops are pretty much what you would expect them to be:
 
 ```
-{{var it = t.users.iterator()}}
-{{while it.hasNext()}}
-  <li>{{user(it.next())}}</li>
-{{end}}
+(: var it = t.users.iterator() :)
+(: while it.hasNext() :)
+  <li>(: user(it.next()) :)</li>
+(: end :)
 ```
 
 There are no `do while` loops, mostly because that would require a proper parser. You can emulate them this way:
 
 ```
-{{var first = true}}
-{{while first || actualCondition}}
-  {{do first = false}}
+(: var first = true :)
+(: while first || actualCondition :)
+  (: do first = false :)
   Body goes here
-{{end}}
+(: end :)
 ```
 
 #### Loop else
@@ -199,11 +210,11 @@ There are no `do while` loops, mostly because that would require a proper parser
 All loops can have an else branch that is executed if the loop has 0 iterations.
 
 ```
-{{for u in t.users}}
-  <li>{{user(u)}}</li>
-{{else}}
+(: for u in t.users :)
+  <li>(: user(u) :)</li>
+(: else :)
   <li>This is a ghost town</li>
-{{end}}
+(: end :)
 ```
 
 #### Variables
@@ -212,21 +223,21 @@ Variables can be declared in two different ways. A variable declaration itself c
 
 ##### Template Variables
 
-Template variables are initialized with some template code which ends with a corresponding `{{end}}`, e.g.: 
+Template variables are initialized with some template code which ends with a corresponding `(: end :)`, e.g.: 
 
 ```
-{{var head}}
+(: var head :)
   <head>
-    <title>{{t.name}}</title>
+    <title>(: t.name :)</title>
   </head>    
-{{end}}
+(: end :)
 ```
 
-Therefore `{{head}}` will now cause the output `<head><title>Paris</title></head>` (whitespace removed for convenience).
+Therefore `(: head :)` will now cause the output `<head><title>Paris</title></head>` (whitespace removed for convenience).
 
 ##### Plain Variables
 
-As opposed to template variables, these are variables that are initialized to normal Haxe values and are defined as `{{var name = expr}}`. If you need a plain variable, you must always initialize it. You can use `null` if you don't have a sensible value at hand.
+As opposed to template variables, these are variables that are initialized to normal Haxe values and are defined as `(: var name = expr :)`. If you need a plain variable, you must always initialize it. You can use `null` if you don't have a sensible value at hand.
 
 #### Functions
 
@@ -234,15 +245,15 @@ Similarly to variables, there are two types of functions.
 
 ##### Template functions
 
-Template functions are syntactically distinguished by the fact that the argument list is followed by a `}}` which begins the body that contains everything until the corresponding `{{end}}`.
+Template functions are syntactically distinguished by the fact that the argument list is followed by a ` :)` which begins the body that contains everything until the corresponding `(: end :)`.
 
 This would be a valid template function:
 
 ```
-{{function user(u:User)}}
-  {{u.name::
-  {{if u.age > 18}} Grown-up {{elseif u.age <= 2}} Baby {{else}} Young {{end}}
-{{end}}
+(: function user(u:User) :)
+  (: u.name::
+  (: if u.age > 18 :) Grown-up (: elseif u.age <= 2 :) Baby (: else :) Young (: end :)
+(: end :)
 ```
 
 ##### Plain Functions
@@ -250,12 +261,12 @@ This would be a valid template function:
 All other functions are plain functions, an example being this one:
 
 ```
-{{function ageGroup(u:User)
+(: function ageGroup(u:User)
   return 
     if (u.age > 18) 'Grown-up';
     else if (u.age <= 2) 'Baby';
     else 'Young';
-}}
+:)
 ```
 
 Anything until the closing delimiter is considered part of the body.
@@ -265,9 +276,9 @@ Anything until the closing delimiter is considered part of the body.
 You can use expression level metadata on all expressions. It will be forwarded to the output and can be picked up by other macros later. Syntax is just like with Haxe. Example:
 
 ```
-{{@foo for i in 0...5}}
-  <li>{{@bar i}}</li>
-{{end}}
+(: @foo for i in 0...5 :)
+  <li>(: @bar i :)</li>
+(: end :)
 ```
 
 ## Template Frontend
@@ -275,17 +286,17 @@ You can use expression level metadata on all expressions. It will be forwarded t
 While above we have seen a compile time alternative to `haxe.Template` with some added syntax, this approach more radical: it interprets a template as a whole standalone class. Imagine we put this in a `Views.hbt` in our classpath:
 
 ```html
-{{static function renderTown(t:Town)}}
-  The habitants of <em>{{t.name}}</em> are :
+(: static function renderTown(t:Town) :)
+  The habitants of <em>(: t.name :)</em> are :
   <ul>
-  {{foreach t.users}}
+  (: for u in t.users :)
     <li>
-      {{name}}
-      {{if age > 18}} Grown-up {{elseif age <= 2}} Baby {{else}} Young {{end}}
+      (: u.name :)
+      (: if u.age > 18 :) Grown-up (: elseif u.age <= 2 :) Baby (: else :) Young (: end :)
     </li>
-  {{end}}
+  (: end :)
   </ul>
-{{end}}
+(: end :)
 ```
 
 Now, just as above with the template fields, we can render our template with `Views.renderTown(Town.PARIS)`. The main advantage of this approach is that the markup and the data signature is in one single place.
@@ -296,20 +307,20 @@ In a standalone template, you can declare the following things:
 
 #### Metadata
 
-You can use arbitrary metadata like `{{@tagName(expr1, expr2)}}`. Particularly useful if you want to use `tink_lang`.
+You can use arbitrary metadata like `(: @tagName(expr1, expr2) :)`. Particularly useful if you want to use `tink_lang`.
 
 #### Import, Using, Implements and Extends
 
 You can all those statements between the mode-specific delimiters like so:
 
 ```html
-{{using foo.bar.Baz}}
-{{import foo.bar.Baz}}
-{{import foo.bar.*}}
-{{import foo.bar.Baz in Frozzle}}
+(: using foo.bar.Baz :)
+(: import foo.bar.Baz :)
+(: import foo.bar.* :)
+(: import foo.bar.Baz in Frozzle :)
 
-{{implements my.Interface<Int>}}
-{{extends my.BaseClass}}
+(: implements my.Interface<Int> :)
+(: extends my.BaseClass :)
 ```
 
 #### Fields
@@ -317,36 +328,36 @@ You can all those statements between the mode-specific delimiters like so:
 Fields work pretty much like variables and functions, except that they can have access modifiers and accessors in the case of fields. You can have template variables and plain variables and the same goes for methods. Here's an example:
 
 ```html
-{{static var headline}}
+(: static var headline :)
 	<h1>Important Heading</h1>
-{{end}}
+(: end :)
 
-{{static var AGE_GROUPS = [
+(: static var AGE_GROUPS = [
 	{ from: 18, name: 'Grown-up' },
 	{ from: 3, name: 'Young' },
 	{ from: 0, name: 'Baby' },
-]}}
+] :)
 
-{{static function renderTown(t:Town)}}
+(: static function renderTown(t:Town) :)
 	
-	{{headline}}
+	(: headline :)
 	
-  The habitants of <em>{{t.name}}</em> are :
+  The habitants of <em>(: t.name :)</em> are :
   <ul>
-  {{for user in t.users}}
+  (: for user in t.users :)
     <li>
-      {{user.name}}
-			{{ageGroup(user)}}
+      (: user.name :)
+			(: ageGroup(user) :)
     </li>
-  {{end}}
+  (: end :)
   </ul>
-{{end}}
+(: end :)
 
-{{static private function ageGroup(u:User) 
+(: static private function ageGroup(u:User) 
 	for (group in AGE_GROUPS)
 		if (u.age >= group.from) return group.name;
 	throw 'unreachable';
-}}
+:)
 ```
 
 ## Class Template Mixin
