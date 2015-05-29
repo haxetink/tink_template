@@ -2,6 +2,8 @@
 
 This library adds compile time support for a `haxe.Template` like string based template language. Using it, templates always end up as actual methods on Haxe classes. Think of it as a superset of Haxe, that makes concatenating strings particularly easy. It is still statically typed and supports using, macros and what not.
 
+Be sure to check out [hhp](https://github.com/RealyUniqueName/HHP) - a "PHP-like templating system for Haxe" - for a similar yet different approach.
+
 ## Modes
 
 The library supports two modes:
@@ -18,7 +20,7 @@ While this can easily be mistaken for an opportunity to obsess over syntax, it m
 	
 1. Use `tink_template` on other file extensions, e.g. with `--macro tink.Template.use('html', '::', '::', true)` to simply get the mtt syntax in html files.
 2. Use different delimiters, because they have a meaning in the language you are generating (you could have templates that create templates for example)
-3. Make it a bit less tedious to consume other syntax, e.g. with `--macro tink.Template.use('hhp', '<?hhp', '?>')` to hhp templates.
+3. Make it a bit less tedious to consume other syntax, e.g. with `--macro tink.Template.use('moustache', '{{', '}}')` to parse a subset of moustache templates.
 
 # Usage
 
@@ -255,7 +257,7 @@ This would be a valid template function:
 
 ```
 (: function user(u:User) :)
-  (: u.name::
+  (: u.name :)
   (: if u.age > 18 :) Grown-up (: elseif u.age <= 2 :) Baby (: else :) Young (: end :)
 (: end :)
 ```
@@ -370,7 +372,7 @@ If you are uncomfortable with not having a `.hx` file for your Haxe class, or if
 
 However, in mixed in templates you cannot use `implements`, `extends`, `using` or `import` due to limitations in the macro API.
 
-## Escaping
+# Escaping
 
 With `tink_template` all values are escaped by default. To prevent double escaping and such, the work is actually pushed to the type system.
 
@@ -389,11 +391,11 @@ The return value of every template function and the type of every template varia
 
 The whole point of `ofMultiple` is that `someArray.map(templateFunction)` produces sensible output.
 
-### Other formats
+# Other formats
 
 Support for other formats such as plaintext output (i.e. without the escaping) is planned.
 
-## Philosophy
+# Philosophy
 
 Most template engines come with a rigid philosophy. The concept of a template engine itself usually already is coupled with an imposed restriction on what a template may or may not do. Some template engines go as far as embracing logic less templates and what not.
 
