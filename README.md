@@ -2,7 +2,7 @@
 
 This library adds compile time support for a `haxe.Template` like string based template language. Using it, templates always end up as actual methods on Haxe classes. Think of it as a superset of Haxe, that makes concatenating strings particularly easy. It is still statically typed and supports using, macros and what not.
 
-Be sure to check out [hhp](https://github.com/RealyUniqueName/HHP) - a "PHP-like templating system for Haxe" - for a similar yet different approach.
+Be sure to also check out [hhp](https://github.com/RealyUniqueName/HHP) - a "PHP-like templating system for Haxe" - for a similar yet different approach.
 
 ## Modes
 
