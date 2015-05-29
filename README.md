@@ -7,20 +7,33 @@ Be sure to also check out [hhp](https://github.com/RealyUniqueName/HHP) - a "PHP
 ## Modes
 
 The library supports two modes:
-	
-1. mtt (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops.
-2. tt (Tink Template): A mode designating statements between `(:` and `:)`. That's right, a template language based on smileys - how cool is that? :)
+  
+1. `mtt` (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops.
+2. `tt` (Tink Template): A mode designating statements between `(:` and `:)`. That's right, a template language based on smileys - how cool is that? :)
 
 The mode is determined by template file extension.
 
 ### Custom modes
 
-Other modes can be added with `--macro tink.Template.addFlavor('ext1,ext2,ext3', 'beginStatement', 'endStatement', allowForeach)`.
+Other modes can be added like so:
+
+```haxe
+--macro tink.Template.addFlavor('ext1,ext2,ext3', 'beginStatement', 'endStatement', allowForeach)
+```
+
 While this can easily be mistaken for an opportunity to obsess over syntax, it mostly for these uses:
-	
-1. Use `tink_template` on other file extensions, e.g. with `--macro tink.Template.use('html', '::', '::', true)` to simply get the mtt syntax in html files.
+  
+1. Use `tink_template` on other file extensions, e.g. to simply get the `mtt` syntax in `.html` files, you can do
+
+ ```haxe 
+ --macro tink.Template.use('html', '::', '::', true)
+ ```
 2. Use different delimiters, because they have a meaning in the language you are generating (you could have templates that create templates for example)
-3. Make it a bit less tedious to consume other syntax, e.g. with `--macro tink.Template.use('moustache', '{{', '}}')` to parse a subset of moustache templates.
+3. Make it a bit less tedious to consume other syntax, e.g. to parse a subset of moustache templates, you could simply do
+
+ ```
+ --macro tink.Template.use('moustache', '{{', '}}')
+ ```
 
 # Usage
 
@@ -115,7 +128,7 @@ class Town {
     town.addUser(new User("Akambo", 2));
     town;
   }
-	@:template function renderTown(); <---- this bit is new!
+  @:template function renderTown();// <---- this bit is new!
 }
 ```
 
@@ -123,12 +136,12 @@ And now we could simply say `Town.PARIS.renderTown()` and get our html as a resu
 
 ```haxe
 class Views {
-	@:template static public function renderTown(t:Town);
+  @:template static public function renderTown(t:Town);
 }
 ```
 
 That would however require you to change the template like so:
-	
+  
 ```html
 The habitants of <em>::t.name::</em> are :
 <ul>
@@ -335,34 +348,34 @@ Fields work pretty much like variables and functions, except that they can have 
 
 ```html
 (: static var headline :)
-	<h1>Important Heading</h1>
+  <h1>Important Heading</h1>
 (: end :)
 
 (: static var AGE_GROUPS = [
-	{ from: 18, name: 'Grown-up' },
-	{ from: 3, name: 'Young' },
-	{ from: 0, name: 'Baby' },
+  { from: 18, name: 'Grown-up' },
+  { from: 3, name: 'Young' },
+  { from: 0, name: 'Baby' },
 ] :)
 
 (: static function renderTown(t:Town) :)
-	
-	(: headline :)
-	
+  
+  (: headline :)
+  
   The habitants of <em>(: t.name :)</em> are :
   <ul>
   (: for user in t.users :)
     <li>
       (: user.name :)
-			(: ageGroup(user) :)
+      (: ageGroup(user) :)
     </li>
   (: end :)
   </ul>
 (: end :)
 
 (: static private function ageGroup(u:User) 
-	for (group in AGE_GROUPS)
-		if (u.age >= group.from) return group.name;
-	throw 'unreachable';
+  for (group in AGE_GROUPS)
+    if (u.age >= group.from) return group.name;
+  throw 'unreachable';
 :)
 ```
 
