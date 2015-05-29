@@ -143,8 +143,12 @@ Why? Well, in the first case `renderTown` became a method of town and thus had a
 
 ### Template Expression Syntax
 
-From this point forward we will use the handlebars-like dialect, because of the clear distinction it makes between start and end of a template stament.
-Statements start with a keyword. Anything else is considered a Haxe expression and if successfully parsed is added to the output, escaped depending on its type.
+From this point forward the code samples will use the `tt` flavor, because of the clear distinction it makes between start and end of a template stament.
+Special statements start with a keyword. Anything else is considered a Haxe expression and if successfully parsed is added to the output, [escaped depending on its type](#escaping).
+
+#### Comments
+
+Any template statement that starts and ends with an `*` is considered a comment, e.g `::* comment *::` in `mtt` mode and `(:* comment *)` in `tt` mode.
 
 #### Not outputting
 
@@ -398,12 +402,12 @@ Let's examine the motivations a bit closer:
 1. Not letting the host language bleed into the template language increases the portability of the template.
 2. Separation of concern is good.
 
-The first argument pretty much evaporates in the light of Haxe's portability. The whole point of using Haxe is to not have to switch languages in the first place.
+The first argument may generally hold, but it evaporates in the light of Haxe's portability. The whole point of using Haxe is to not have to switch languages in the first place.
 
 The second argument is sound. Separation of concerns is desirable for an almost unending list of reasons. 
 
-However strictly separating templates and logic impedes the separation also. For example with haxe templates we can observe that anything non-trivial immediately becomes difficult, requiring the calling code to provide macros, thus being forced not only to provide the data, but also operations on it, thus having intimate knowledge on what operations are needed. Also nesting templates directly is impossible. The calling code again needs to do the nesting and at the bottom line you find yourself having a lot of what is your presentation logic in your controllers, rather than the views.
+However, strictly separating templates and logic impedes the separation also. For example with haxe templates we can observe that anything non-trivial immediately becomes difficult, requiring the calling code to provide macros, thus being forced not only to provide the data, but also operations on it, thereby having intimate knowledge on what operations are needed. Also nesting templates directly is impossible. The calling code again needs to do the nesting and at the bottom line you find yourself having a lot of what is your presentation logic in your controllers, rather than the views.
 
-While `tink_template` makes no attempt to make it hard for you to spaghettify your views, what it really focuses on is to make it easy to put all your rendering logic into the views, keeping it out from your controllers and models. No formatting of dates, assembling of tree structures, localization or whatever else is actually a presentational concern - none of it ends up anywhere but in the view for any other reason than you wanting to single it out.
+While `tink_template` makes no attempt to make it hard for you to spaghettify your views, what it really focuses on is to make it easy to put all your rendering logic into the views, keeping it out from your controllers and models. No formatting of dates, assembling of tree structures, localization or whatever else is actually a presentational concern - none of it ends up anywhere but in the view for any other reason than you wanting to single it out. In essence `tink_template` aims to make it easier for you not to spaghettify your controllers.
 
-There is no concept of partials or macros. Just Haxe functions. The well known semantics you use for anything else. Values in values out, only the returned value happens to be HTML in some cases and you're handed a Haxe dialect with which it's easier to render. You get to decide how to separate your concerns. It's hard enough without the tool you're using trying to force its author's opinion onto you. By the way, this author thinks that templates should be descriptive and referentially transparent, as should all code, if possible. But that's your problem ;)
+There is no concept of partials or macros. Just Haxe functions. The well known semantics you use for anything else. Arguments in, return value out - only the returned value happens to be HTML in some cases and you're handed a Haxe dialect with which it's easier to render. You get to decide how to separate your concerns. It's hard enough without the tool you're using trying to force its author's opinion onto you. By the way, this author thinks that templates should be descriptive and referentially transparent, as should all code, if possible. But that's your problem ;)

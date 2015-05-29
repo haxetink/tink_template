@@ -11,6 +11,7 @@
 	::end::
 </head>
 <body>
+	::* this is just a comment *::
 	::content::
 </body>
 </html>

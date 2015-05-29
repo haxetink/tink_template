@@ -1,5 +1,7 @@
 ::@:tink::
 
+::* this is just a comment *::
+
 ::@:foo(1, 2, 3) static function print(title)::
 <html>
   <head>

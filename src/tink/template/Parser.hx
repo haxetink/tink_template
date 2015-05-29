@@ -72,6 +72,11 @@ class Parser {
 		while (pos < source.length) {			
 			var start = pos;//dirty look ahead coming up!
 			if (allow(openTag)) {
+				if (allow('*')) {
+					until('*$closeTag');
+					skipWhite();
+					continue;
+				}
 				skipWhite();
 				var kw = ident();
 				pos = start;
@@ -96,8 +101,7 @@ class Parser {
           default: e;
     		})
       catch (e:Dynamic)
-        //pos.error('Invalid string "$s');
-				throw('Invalid string "${haxe.Json.stringify(s)}"');
+        pos.error('Invalid string "$s');
 
 	function parseSimple():Expr {
 		skipWhite();
@@ -139,12 +143,24 @@ class Parser {
 
 	public function parseAll() {
 		skipWhite();
+		
 		var ret = [];
+		
 		while (allow(openTag)) {
+			
+			if (allow('*')) {
+				until('*$closeTag');
+				skipWhite();
+				continue;
+			}
+			
 			skipWhite();
+			
 			ret.push(parseDecl());
+			
 			skipWhite();
 		}
+		
 		return {
 			pos: Context.makePosition( { min: 0, max: source.length, file: file } ),
 			declarations: ret,
