@@ -241,6 +241,7 @@ class Parser {
 											mode = IAll;
 											skipWhite();
 											expect(closeTag);
+											break;
 										}
 										
 										switch ident().sure() {
@@ -261,8 +262,12 @@ class Parser {
 									Import(parts.join('.'), mode, getPos());
 								
 								case Success('using'):
-									
-									throw 'not implemented';
+									var path = [ident().sure()];
+									while (allow('.'))
+										path.push(ident().sure());
+									skipWhite();
+									expect(closeTag);
+									Using(path.join('.'), getPos());
 								
 								case v:
 									
