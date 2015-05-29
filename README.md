@@ -294,7 +294,7 @@ Anything until the closing delimiter is considered part of the body.
 
 You can use expression level metadata on all expressions. It will be forwarded to the output and can be picked up by other macros later. Syntax is just like with Haxe. Example:
 
-```
+```html
 (: @foo for i in 0...5 :)
   <li>(: @bar i :)</li>
 (: end :)
@@ -302,7 +302,7 @@ You can use expression level metadata on all expressions. It will be forwarded t
 
 ## Template Frontend
 
-While above we have seen a compile time alternative to `haxe.Template` with some added syntax, this approach more radical: it interprets a template as a whole standalone class. Imagine we put this in a `Views.hbt` in our classpath:
+While above we have seen a compile time alternative to `haxe.Template` with some added syntax, this approach more radical: it interprets a template as a whole standalone class. Imagine we put this in a `Views.tt` in our classpath:
 
 ```html
 (: static function renderTown(t:Town) :)
@@ -332,7 +332,7 @@ You can use arbitrary metadata like `(: @tagName(expr1, expr2) :)`. Particularly
 
 You can all those statements between the mode-specific delimiters like so:
 
-```html
+```haxe
 (: using foo.bar.Baz :)
 (: import foo.bar.Baz :)
 (: import foo.bar.* :)
@@ -346,7 +346,7 @@ You can all those statements between the mode-specific delimiters like so:
 
 Fields work pretty much like variables and functions, except that they can have access modifiers and accessors in the case of fields. You can have template variables and plain variables and the same goes for methods. Here's an example:
 
-```html
+```haxe
 (: static var headline :)
   <h1>Important Heading</h1>
 (: end :)
@@ -389,7 +389,7 @@ However, in mixed in templates you cannot use `implements`, `extends`, `using` o
 
 With `tink_template` all values are escaped by default. To prevent double escaping and such, the work is actually pushed to the type system.
 
-```
+```haxe
 abstract Html {
   public function new(s:String):Void;
 
