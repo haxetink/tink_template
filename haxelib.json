@@ -1,14 +1,21 @@
 {
 	"name": "tink_template",
-	"url" : "http://haxetink.org/tink_template",
 	"license": "MIT",
-	"tags": ["tink", "cross", "utility", "template"],
+	"tags": [
+		"tink",
+		"cross",
+		"utility",
+		"template"
+	],
+	"classPath": "src",
 	"description": "Tinkerbell template Language",
+	"contributors": [
+		"back2dos"
+	],
+	"releasenote": "First release candidate.",
 	"version": "0.1.0",
-	"releasenote": "Initial release",
-	"contributors": ["back2dos"], 
-  "dependencies": {
-    "tink_syntaxhub" : ""
-  },
-	"classPath": "src" 
+	"url": "http://haxetink.org/tink_template",
+	"dependencies": {
+		"tink_syntaxhub": ""
+	}
 }
