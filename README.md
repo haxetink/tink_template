@@ -7,7 +7,7 @@ This library adds compile time support for a `haxe.Template` like string based t
 The library supports two modes:
 	
 1. mtt (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops.
-2. tt (Tink Template): A mode similar to handlebars designating statements between `(:` and `:)`. That's right, a template language based on smileys - how cool is that? :)
+2. tt (Tink Template): A mode designating statements between `(:` and `:)`. That's right, a template language based on smileys - how cool is that? :)
 
 The mode is determined by template file extension.
 
