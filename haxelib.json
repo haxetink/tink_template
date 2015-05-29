@@ -8,7 +8,7 @@
 	"releasenote": "Initial release",
 	"contributors": ["back2dos"], 
   "dependencies": {
-    "tink_syntaxhub",
+    "tink_syntaxhub" : ""
   },
 	"classPath": "src" 
 }
