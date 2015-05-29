@@ -4,3 +4,4 @@
 -neko bin/tinktemplate.n
 -main Run
 extraParams.hxml
+--macro "tink.Template.addFlavor('stache', '{{', '}}')"

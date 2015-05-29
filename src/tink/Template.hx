@@ -12,20 +12,27 @@ using sys.FileSystem;
 using sys.io.File;
 
 class Template {
-	static var frontends = [];
-	static function addFlavour(extensions:String, openTag:String, closeTag:String) {
-		var f = new Frontend(extensions.split(','), openTag, closeTag);
-		frontends.push(f);
+	static var frontends = new Map();
+	static function addFlavor(extensions:String, openTag:String, closeTag:String, ?allowForeach:Bool = false) {
+		
+		var f = new Frontend(extensions.split(','), {
+			openTag : openTag, 
+			closeTag : closeTag, 
+			allowForeach : allowForeach
+		});
+		
 		var list = f.extensionList.copy();
+		
 		list.sort(Reflect.compare);
-		SyntaxHub.frontends.whenever(f, 'tink.Template::'+list.join('_'));
+		
+		var id = list.join('_');
+		
+		SyntaxHub.frontends.whenever(f, 'tink.Template::$id');
+		
+		frontends[id] = f;
 	}
 	
 	static function use() {
-		frontends = [];
-		addFlavour('mtt', '::', '::');
-		//addFlavour('stache', '{{', '}}');
-		addFlavour('tt', '(:', ':)');
 			
 		SyntaxHub.classLevel.before('tink.lang.', function (c:ClassBuilder) {
 			var changed = false;

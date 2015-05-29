@@ -1,1 +1,3 @@
+--macro tink.Template.addFlavor('mtt', '::', '::', true)
+--macro tink.Template.addFlavor('tt', '(:', ':)', false)
 --macro tink.Template.use()

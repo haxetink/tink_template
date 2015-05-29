@@ -6,19 +6,19 @@ This library adds compile time support for a `haxe.Template` like string based t
 
 The library supports two modes:
 	
-1. mtt (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops
-2. tt (Tink Template): A mode similar to handlebars designating statements between `(:` and `:)`. That's right, a template language based on smileys. How cool is that? :)
+1. mtt (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops.
+2. tt (Tink Template): A mode similar to handlebars designating statements between `(:` and `:)`. That's right, a template language based on smileys - how cool is that? :)
 
 The mode is determined by template file extension.
 
 ### Custom modes
 
-Other modes can be added with `--macro tink.Template.use('ext1,ext2,ext3', 'beginStatement', 'endStatement', allowForeach)`.
+Other modes can be added with `--macro tink.Template.addFlavor('ext1,ext2,ext3', 'beginStatement', 'endStatement', allowForeach)`.
 While this can easily be mistaken for an opportunity to obsess over syntax, it mostly for these uses:
 	
 1. Use `tink_template` on other file extensions, e.g. with `--macro tink.Template.use('html', '::', '::', true)` to simply get the mtt syntax in html files.
 2. Use different delimiters, because they have a meaning in the language you are generating (you could have templates that create templates for example)
-3. Make it a bit less tedious to consume other syntax, e.g. with `--macro tink.Template.use('stache', '<?hhp', '?>', true)` to hhp templates.
+3. Make it a bit less tedious to consume other syntax, e.g. with `--macro tink.Template.use('hhp', '<?hhp', '?>')` to hhp templates.
 
 # Usage
 
@@ -182,7 +182,7 @@ There's not much to it, really.
 
 ##### Foreach loops
 
-For compatibility reasons, there's also support for foreach loops, but they are discouraged for the same reasons `with` statements in JavaScript are.
+For compatibility reasons, there's also support for `foreach` loops in `mtt` mode, but they are discouraged for the same reasons `with` statements in JavaScript are.
 
 #### While loops
 

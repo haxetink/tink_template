@@ -25,12 +25,12 @@
 ::static function test()::
   ::var x = 15::
   ::'foo $x'::
-    ::while x > 1::
-      ::switch x::
-        ::case 14::  ::x = 4::
-        ::case v::  ::--x::
-      ::end::
-    ::end::
+	::while x > 1::
+		::switch x::
+			::case 14::  ::x = 4::
+			::case v::  ::--x::
+		::end::
+	::end::
   ::'<3'::
   ::while false::
   ::else::

@@ -10,14 +10,10 @@ using tink.MacroApi;
 class Frontend implements FrontendPlugin {	
 
 	public var extensionList(default, null):Array<String>;
-	
-	var openTag:String;
-	var closeTag:String;
-	
-	public function new(extensions, openTag, closeTag) {
+	var settings:Settings;
+	public function new(extensions, settings) {
 		this.extensionList = extensions;
-		this.openTag = openTag;
-		this.closeTag = closeTag;
+		this.settings = settings;
 	}
 	
 	public function extensions()
@@ -30,7 +26,7 @@ class Frontend implements FrontendPlugin {
 		function parse(withReturn)
 			return
 				Generator.functionBody(
-					new Parser(file.getContent(), file, openTag, closeTag).parseFull(),
+					parserFor(file).parseFull(),
 					withReturn
 				);
 				
@@ -54,7 +50,7 @@ class Frontend implements FrontendPlugin {
 	}
 	static var TYPE = macro : tink.template.Html;
 	public function parseFields(file:String, c:ClassBuilder) {
-		for (d in new Parser(file.getContent(), file, openTag, closeTag).parseAll().declarations)
+		for (d in parserFor(file).parseAll().declarations)
 			switch d {
 				case VanillaField(f):
 					c.addMember(f).publish();
@@ -73,10 +69,13 @@ class Frontend implements FrontendPlugin {
 					pos.error('using not allowed in @:template templates');
 			}
 	}
+	
+	function parserFor(file:String)
+		return new Parser(file.getContent(), file, settings);
 		
 	public function parse(file:String, context:FrontendContext):Void {
 		Generator.generate(
-			new Parser(file.getContent(), file, openTag, closeTag).parseAll(),
+			parserFor(file).parseAll(),
 			context
 		);
 	}	

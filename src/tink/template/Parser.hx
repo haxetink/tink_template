@@ -17,14 +17,16 @@ class Parser {
 	
 	var openTag:String;
 	var closeTag:String;
+	var allowForeach:Bool;
 	
-	public function new(source, file, openTag, closeTag) {
+	public function new(source, file, settings:Settings) {
 		this.source = source;
 		this.file = file;
 		this.pos = 0;
 		this.last = 0;
-		this.openTag = openTag;
-		this.closeTag = closeTag;
+		this.openTag = settings.openTag;
+		this.closeTag = settings.closeTag;
+		this.allowForeach = settings.allowForeach;
 	}
 
 	function isNext(s) 
@@ -67,8 +69,21 @@ class Parser {
 	
 	public function parseFull():TplExpr {
 		var ret = [parse()];
-		while (!isNext('${openTag}end${closeTag}') && !isNext('${openTag}else') && !isNext('${openTag}case') && pos < source.length)
+		while (pos < source.length) {			
+			var start = pos;//dirty look ahead coming up!
+			if (allow(openTag)) {
+				skipWhite();
+				var kw = ident();
+				pos = start;
+				switch kw {
+					case Success('end' | 'case' | 'else' | 'elseif'):
+						break;
+					default:
+				}
+			}
+			
 			ret.push(parse());
+		}
 		return TplExpr.Block(ret);
 	}
 
@@ -81,10 +96,13 @@ class Parser {
           default: e;
     		})
       catch (e:Dynamic)
-        pos.error('Invalid string "$s');
+        //pos.error('Invalid string "$s');
+				throw('Invalid string "${haxe.Json.stringify(s)}"');
 
-	function parseSimple():Expr
+	function parseSimple():Expr {
+		skipWhite();
 		return parseHx(until(closeTag), getPos());
+	}
 
 	function parseInline():TplExpr {
 		var v = parseSimple();
@@ -123,6 +141,7 @@ class Parser {
 		skipWhite();
 		var ret = [];
 		while (allow(openTag)) {
+			skipWhite();
 			ret.push(parseDecl());
 			skipWhite();
 		}
@@ -257,7 +276,6 @@ class Parser {
 	function parseFunction() {
 		var name = ident().sure();
 		
-		skipWhite();
     var params = 
 		  if (isNext('<')) '<' + balanced('<', '>') + '>';
       else '';
@@ -274,11 +292,13 @@ class Parser {
 			}
 			else 
 				until(closeTag);
+				
 		var fname = 
       switch name {
         case 'new': '';
         case _: name;
       }
+			
 		var func = 
 			switch parseHx('function $fname$params($args) { $fBody }', getPos()) {
 				case { expr: EFunction(_, f) }:
@@ -303,14 +323,18 @@ class Parser {
 	static var IDENT = [for (c in '_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) c.charCodeAt(0) => true];
 	
 	function ident() {
+		skipWhite();
 		this.last = pos;
 		while (IDENT[source.charCodeAt(pos)])
 			pos++;
 		return
 			if (last == pos)
 				getPos().makeFailure('identifier expected');
-			else
-				Success(source.substring(last, pos));
+			else {
+				var ret = Success(source.substring(last, pos));
+				skipWhite();
+				ret;
+			}
 	}
 	
 	function parseMetaEntry():MetadataEntry {
@@ -368,137 +392,183 @@ class Parser {
 	
 	function parseToEnd() {
 		var ret = parseFull();
-		expect('${openTag}end${closeTag}');
+		expectAll([openTag, 'end', closeTag]);
+		//expect('${openTag}end${closeTag}');
 		return ret;
 	}
 	
 	function finishLoop(loop:TplExpr) {
-		if (allow('${openTag}else${closeTag}')) {
-			var alt = parseToEnd();
-			var tmp = MacroApi.tempName();
-			var wasRun = Do(macro $i{tmp} = true);
-			
-			function markRun(t) 
-				return
-					switch t {
-						case Block(exprs):
-							Block([wasRun].concat(exprs));
-						case v:
-							Block([wasRun, v]);
-					}
-					
-			loop = switch loop {
-				case For(target, body, legacy):
-					For(target, markRun(body), legacy);
-				case While(cond, body):
-					While(cond, markRun(body));
-				case v: loop;//error?
-			}
-			
-			loop = Block([
-				Do(macro var $tmp = false),
-				loop,
-				If(macro !$i{tmp}, alt, null)
-			]);
+		expect(openTag);
+		skipWhite();
+		return
+		switch ident() {
+			case Success('else'):
+				expect(closeTag);
+				var alt = parseToEnd();
+				var tmp = MacroApi.tempName();
+				var wasRun = Do(macro $i{tmp} = true);
+				function markRun(t) 
+					return
+						switch t {
+							case Block(exprs):
+								Block([wasRun].concat(exprs));
+							case v:
+								Block([wasRun, v]);
+						}
+				loop = switch loop {
+					case For(target, body, legacy):
+						For(target, markRun(body), legacy);
+					case While(cond, body):
+						While(cond, markRun(body));
+					case v: loop;//error?
+				}
+				
+				Block([
+					Do(macro var $tmp = false),
+					loop,
+					If(macro !$i{tmp}, alt, null)
+				]);					
+			case Success('end'):
+				skipWhite();
+				expect(closeTag);
+				loop;
+			case Success(v):
+				getPos().error('unexpected identifier $v');
+			case Failure(f):
+				getPos().error('expected end or else here');
 		}
-		else expect('${openTag}end${closeTag}');
-		return loop;
+	}
+	
+	function expectAll(tokens:Array<String>) {
+		for (t in tokens) {
+			skipWhite();
+			expect(t);
+		}
+		skipWhite();
 	}
 	
 	function parseComplex() {
 		
 		var meta = parseMeta();
-		
+		skipWhite();
+		var start = pos;//dirty lookahead coming
 		var ret = 
-			if (allow('for ')) 
-				finishLoop(For(parseSimple(), parseFull()));
-			else if (allow('foreach ')) 
-				finishLoop(For(parseSimple(), parseFull(), true));
-			else if (allow('while ')) 
-				finishLoop(While(parseSimple(), parseFull()));
-			else if (allow('*')) {
-				until('*$closeTag');
-				Block([]);
-			}
-			else if (allow('do ')) 
-				Do(parseSimple());
-			else if (allow('if ')) {
-				var cases = [],
-					alt = null;
-				function next()
-					cases.push({
-						when: parseSimple(),
-						then: parseFull()
-					});
-				next();
-				while (allow('${openTag}elseif') || allow('${openTag} if')) 
-					next();
-				if (allow('${openTag}else${closeTag}'))
-					alt = parseFull();
-				expect('${openTag}end${closeTag}');
-				
-				while (cases.length > 0)
-					switch cases.pop() {
-						case v: 
-							alt = If(v.when, v.then, alt);
+			switch ident() {
+				case Success('for'):
+					finishLoop(For(parseSimple(), parseFull()));
+				case Success('foreach'):
+					switch allowForeach {
+						case true:
+							getPos().warning('foreach is discouraged');
+						case false:
+							getPos().error('foreach not allowed by this template flavor');
 					}
-				alt;
-			}
-			else if (allow('function ')) {
-				var f = parseFunction();
-				if (f.tpl == null)
-					Do(EFunction(f.name, f.func).at(f.pos));
-				else
-					Function(f.name, f.func.args, f.tpl);
-			}
-			else if (isNext('var ')) {
-				switch parseSimple().expr {
-					case EVars([{ name: name, expr: null }]):
-						Define(name, parseToEnd());
-					case EVars(vars): 
-						Var(vars);
-					default:
-						throw 'assert';
-				}
-			}
-			else {
-				var start = pos;
-				switch ident() {
-					case Success('switch'):
-						var target = parseSimple();
-						skipWhite();
+					finishLoop(For(parseSimple(), parseFull(), true));
+				case Success('while'):
+					finishLoop(While(parseSimple(), parseFull()));
+				case Success('do'):
+					Do(parseSimple());
+				case Success('if'):
+					var cases = [],
+							alt = null;
+							
+					function next()
+						cases.push({
+							when: parseSimple(),
+							then: parseFull()
+						});
 						
-						expect(openTag);
-						var cases = [
-							while (allow('case')) {
-                var src = until(closeTag);
-                switch parseHx('switch _ { case $src: }', getPos()) {
-                  case { expr: ESwitch(_, [c], _) } if (c.expr == null): 
-                    var ret = {
-                      values: c.values,
-                      guard: c.guard,
-                      expr: parseFull(),
-                    }
-                    expect(openTag);
-                    ret;
-                  case e:
-                    e.reject('invalid case statement: ${e.toString()}');
-                }
+					next();
+					
+					while (pos < source.length) {
+						var start = pos;//one dirty look ahead coming up
+						if (allow(openTag)) {
+							var kw = ident();
+							switch kw {
+								case Success('elseif'): 
+									next();
+								case Success('else'):
+									switch ident() {
+										case Success('if'): 
+											next();
+										case Success(v):
+											getPos().error('Unexpected identifier $v');
+										default:
+											expect(closeTag);
+											alt = parseFull();
+											break;
+									}
+								default:
+									pos = start;
+									break;
 							}
-						];
-						expect('end$closeTag');
-						Switch(target, cases);
-					default:
-						pos = start;
-						parseInline();	
-				}
+						}
+					}
+						
+					expectAll([openTag, 'end', closeTag]);
+					
+					while (cases.length > 0)
+						switch cases.pop() {
+							case v: 
+								alt = If(v.when, v.then, alt);
+						}
+					alt;					
+				case Success('switch'):
+					var target = parseSimple();
+					skipWhite();
+					
+					expect(openTag);
+					var cases = [];
+					while (pos < source.length)
+						switch ident() {
+							case Success('case'):
+								var src = until(closeTag);
+								switch parseHx('switch _ { case $src: }', getPos()) {
+									case { expr: ESwitch(_, [c], _) } if (c.expr == null): 
+										cases.push({
+											values: c.values,
+											guard: c.guard,
+											expr: parseFull(),
+										});
+										expect(openTag);
+									case e:
+										e.reject('invalid case statement: ${e.toString()}');
+								}								
+							case Success('end'):
+								expect(closeTag);
+								break;
+							case Success(v):
+								getPos().error('Unexpected identifier $v');
+							default:
+								getPos().error('expected case or end');
+						}
+					Switch(target, cases);
+					
+				case Success('function'):
+					var f = parseFunction();
+					if (f.tpl == null)
+						Do(EFunction(f.name, f.func).at(f.pos));
+					else
+						Function(f.name, f.func.args, f.tpl);					
+				case Success('var'):
+					pos = start;
+					switch parseSimple().expr {
+						case EVars([{ name: name, expr: null }]):
+							Define(name, parseToEnd());
+						case EVars(vars): 
+							Var(vars);
+						default:
+							throw 'assert';
+					}					
+				default:
+					pos = start;
+					parseInline();
 			}
-		
-		
+			
 		return switch meta {
 			case []: ret;
 			case v: Meta(v, ret);
-		}
+		}			
 	}
 	
 	function collapseWhite(s:String) {

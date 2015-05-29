@@ -68,9 +68,7 @@ class Generator {
 					
 					if (legacy) {
 						
-						target = macro @:pos(target.pos) __current__ in $target;
-						
-						pos.warning('foreach loops are discouraged');
+						target = macro @:pos(target.pos) __current__ in $target;						
 						
 						pre = (macro __current__).bounceExpr(
 							function (e:Expr) {
