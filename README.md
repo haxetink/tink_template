@@ -2,23 +2,38 @@
 
 This library adds compile time support for a `haxe.Template` like string based template language. Using it, templates always end up as actual methods on Haxe classes. Think of it as a superset of Haxe, that makes concatenating strings particularly easy. It is still statically typed and supports using, macros and what not.
 
+Be sure to also check out [hhp](https://github.com/RealyUniqueName/HHP) - a "PHP-like templating system for Haxe" - for a similar yet different approach.
+
 ## Modes
 
 The library supports two modes:
-	
-1. mtt (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops.
-2. tt (Tink Template): A mode similar to handlebars designating statements between `(:` and `:)`. That's right, a template language based on smileys - how cool is that? :)
+  
+1. `mtt` (Motion Twin Template): This is practically a legacy mode (although admittedly it is what I have been using for the past 2 years) aiming to be rather close to `haxe.Template` using `::` to designate template statements and allowing `foreach` loops.
+2. `tt` (Tink Template): A mode designating statements between `(:` and `:)`. That's right, a template language based on smileys - how cool is that? :)
 
 The mode is determined by template file extension.
 
 ### Custom modes
 
-Other modes can be added with `--macro tink.Template.addFlavor('ext1,ext2,ext3', 'beginStatement', 'endStatement', allowForeach)`.
+Other modes can be added like so:
+
+```haxe
+--macro tink.Template.addFlavor('ext1,ext2,ext3', 'beginStatement', 'endStatement', allowForeach)
+```
+
 While this can easily be mistaken for an opportunity to obsess over syntax, it mostly for these uses:
-	
-1. Use `tink_template` on other file extensions, e.g. with `--macro tink.Template.use('html', '::', '::', true)` to simply get the mtt syntax in html files.
+  
+1. Use `tink_template` on other file extensions, e.g. to simply get the `mtt` syntax in `.html` files, you can do
+
+ ```haxe 
+ --macro tink.Template.use('html', '::', '::', true)
+ ```
 2. Use different delimiters, because they have a meaning in the language you are generating (you could have templates that create templates for example)
-3. Make it a bit less tedious to consume other syntax, e.g. with `--macro tink.Template.use('hhp', '<?hhp', '?>')` to hhp templates.
+3. Make it a bit less tedious to consume other syntax, e.g. to parse a subset of moustache templates, you could simply do
+
+ ```
+ --macro tink.Template.use('moustache', '{{', '}}')
+ ```
 
 # Usage
 
@@ -113,7 +128,7 @@ class Town {
     town.addUser(new User("Akambo", 2));
     town;
   }
-	@:template function renderTown(); <---- this bit is new!
+  @:template function renderTown();// <---- this bit is new!
 }
 ```
 
@@ -121,12 +136,12 @@ And now we could simply say `Town.PARIS.renderTown()` and get our html as a resu
 
 ```haxe
 class Views {
-	@:template static public function renderTown(t:Town);
+  @:template static public function renderTown(t:Town);
 }
 ```
 
 That would however require you to change the template like so:
-	
+  
 ```html
 The habitants of <em>::t.name::</em> are :
 <ul>
@@ -255,7 +270,7 @@ This would be a valid template function:
 
 ```
 (: function user(u:User) :)
-  (: u.name::
+  (: u.name :)
   (: if u.age > 18 :) Grown-up (: elseif u.age <= 2 :) Baby (: else :) Young (: end :)
 (: end :)
 ```
@@ -279,7 +294,7 @@ Anything until the closing delimiter is considered part of the body.
 
 You can use expression level metadata on all expressions. It will be forwarded to the output and can be picked up by other macros later. Syntax is just like with Haxe. Example:
 
-```
+```html
 (: @foo for i in 0...5 :)
   <li>(: @bar i :)</li>
 (: end :)
@@ -287,7 +302,7 @@ You can use expression level metadata on all expressions. It will be forwarded t
 
 ## Template Frontend
 
-While above we have seen a compile time alternative to `haxe.Template` with some added syntax, this approach more radical: it interprets a template as a whole standalone class. Imagine we put this in a `Views.hbt` in our classpath:
+While above we have seen a compile time alternative to `haxe.Template` with some added syntax, this approach more radical: it interprets a template as a whole standalone class. Imagine we put this in a `Views.tt` in our classpath:
 
 ```html
 (: static function renderTown(t:Town) :)
@@ -317,7 +332,7 @@ You can use arbitrary metadata like `(: @tagName(expr1, expr2) :)`. Particularly
 
 You can all those statements between the mode-specific delimiters like so:
 
-```html
+```haxe
 (: using foo.bar.Baz :)
 (: import foo.bar.Baz :)
 (: import foo.bar.* :)
@@ -331,36 +346,36 @@ You can all those statements between the mode-specific delimiters like so:
 
 Fields work pretty much like variables and functions, except that they can have access modifiers and accessors in the case of fields. You can have template variables and plain variables and the same goes for methods. Here's an example:
 
-```html
+```haxe
 (: static var headline :)
-	<h1>Important Heading</h1>
+  <h1>Important Heading</h1>
 (: end :)
 
 (: static var AGE_GROUPS = [
-	{ from: 18, name: 'Grown-up' },
-	{ from: 3, name: 'Young' },
-	{ from: 0, name: 'Baby' },
+  { from: 18, name: 'Grown-up' },
+  { from: 3, name: 'Young' },
+  { from: 0, name: 'Baby' },
 ] :)
 
 (: static function renderTown(t:Town) :)
-	
-	(: headline :)
-	
+  
+  (: headline :)
+  
   The habitants of <em>(: t.name :)</em> are :
   <ul>
   (: for user in t.users :)
     <li>
       (: user.name :)
-			(: ageGroup(user) :)
+      (: ageGroup(user) :)
     </li>
   (: end :)
   </ul>
 (: end :)
 
 (: static private function ageGroup(u:User) 
-	for (group in AGE_GROUPS)
-		if (u.age >= group.from) return group.name;
-	throw 'unreachable';
+  for (group in AGE_GROUPS)
+    if (u.age >= group.from) return group.name;
+  throw 'unreachable';
 :)
 ```
 
@@ -370,11 +385,11 @@ If you are uncomfortable with not having a `.hx` file for your Haxe class, or if
 
 However, in mixed in templates you cannot use `implements`, `extends`, `using` or `import` due to limitations in the macro API.
 
-## Escaping
+# Escaping
 
 With `tink_template` all values are escaped by default. To prevent double escaping and such, the work is actually pushed to the type system.
 
-```
+```haxe
 abstract Html {
   public function new(s:String):Void;
 
@@ -389,11 +404,11 @@ The return value of every template function and the type of every template varia
 
 The whole point of `ofMultiple` is that `someArray.map(templateFunction)` produces sensible output.
 
-### Other formats
+# Other formats
 
 Support for other formats such as plaintext output (i.e. without the escaping) is planned.
 
-## Philosophy
+# Philosophy
 
 Most template engines come with a rigid philosophy. The concept of a template engine itself usually already is coupled with an imposed restriction on what a template may or may not do. Some template engines go as far as embracing logic less templates and what not.
 
