@@ -321,7 +321,7 @@ class Parser {
       }
 			
 		var func = 
-			switch parseHx('function $fname$params($args) { $fBody }', getPos()) {
+			switch parseHx('function $fname$params($args) $fBody', getPos()) {
 				case { expr: EFunction(_, f) }:
 					if (tpl != null)
 						f.expr = null;

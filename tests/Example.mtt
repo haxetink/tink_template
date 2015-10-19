@@ -10,7 +10,7 @@
   <body>
     <h1>YO!</h1>
     <p>This mah template, yo!</p>
-     ::function dup(x) return x * 2;::
+     ::function dup(x) return x * 2::
     <ol>
       ::for i in 0...3::
         <li>::dup(i)::</li>
