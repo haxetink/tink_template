@@ -12,8 +12,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "Fix import * and using.",
-	"version": "0.1.2",
+	"releasenote": "Change semicolon handling.",
+	"version": "0.2.0",
 	"url": "http://haxetink.org/tink_template",
 	"dependencies": {
 		"tink_syntaxhub": ""
