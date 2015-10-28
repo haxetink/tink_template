@@ -7,6 +7,7 @@ import tink.template.TplExpr;
 using haxe.macro.Tools;
 using tink.CoreApi;
 using tink.MacroApi;
+using StringTools;
 
 class Parser {
 	
@@ -101,7 +102,7 @@ class Parser {
           default: e;
     		})
       catch (e:Dynamic)
-        pos.error('Invalid string "$s');
+        pos.error('$e in "$s"');
 
 	function parseSimple():Expr {
 		skipWhite();
@@ -312,8 +313,8 @@ class Parser {
 				'{}';
 			}
 			else 
-				until(closeTag);
-				
+				removeTrailingSemicolon(until(closeTag));
+        
 		var fname = 
       switch name {
         case 'new': '';
@@ -337,6 +338,13 @@ class Parser {
 			pos: getPos(),
 		}
 	}
+  
+  function removeTrailingSemicolon(s:String) {
+    s = s.rtrim();
+    if (s.endsWith(';'))
+      s = s.substr(0, s.length - 1);
+    return s;
+  }
 	
 	function skipWhite() 
 		while (source.charCodeAt(pos) <= 32) pos++;
