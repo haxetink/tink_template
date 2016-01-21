@@ -112,9 +112,10 @@ class Generator {
 	static public function functionBody(body:TplExpr, ?withReturn:Bool):Expr {
 		var pos = getPos(body);
 		var body = [body];
-		if (Context.defined('debug'))
-			body.unshift(Const(posComment(pos), pos));
-		
+    
+    if ((Context.defined('debug') && Context.definedValue('tink_template_pos') != 'off') || Context.definedValue('tink_template_pos') == 'on')
+      body.unshift(Const(posComment(pos), pos));
+      
 		var ret = macro @:pos(pos) ret.collapse();
 		if (withReturn)
 			ret = macro return $ret;

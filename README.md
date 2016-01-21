@@ -426,3 +426,7 @@ However, strictly separating templates and logic impedes the separation also. Fo
 While `tink_template` makes no attempt to make it hard for you to spaghettify your views, what it really focuses on is to make it easy to put all your rendering logic into the views, keeping it out from your controllers and models. No formatting of dates, assembling of tree structures, localization or whatever else is actually a presentational concern - none of it ends up anywhere but in the view for any other reason than you wanting to single it out. In essence `tink_template` aims to make it easier for you not to spaghettify your controllers.
 
 There is no concept of partials or macros. Just Haxe functions. The well known semantics you use for anything else. Arguments in, return value out - only the returned value happens to be HTML in some cases and you're handed a Haxe dialect with which it's easier to render. You get to decide how to separate your concerns. It's hard enough without the tool you're using trying to force its author's opinion onto you. By the way, this author thinks that templates should be descriptive and referentially transparent, as should all code, if possible. But that's your problem ;)
+
+## Position comments
+
+You can use `-D tink_template_pos=on|off` to toggle position comments (that allow you to identify the source in the generated HTML). The switch defaults to `on` in `-debug` mode, and `off` otherwise.
