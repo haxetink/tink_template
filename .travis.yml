@@ -12,9 +12,8 @@ matrix:
     - haxe: development
     
 install:
-  - haxelib git travix https://github.com/back2dos/travix.git
+  - haxelib install travix
   - haxelib run travix install
-  - haxelib install tests.hxml --always
 
 script:
   - haxelib run travix interp
