@@ -13,8 +13,8 @@ matrix:
     
 install:
   - haxelib install travix
-  - haxelib install tink_lang
   - haxelib run travix install
+  - haxelib install tests.hxml --always
 
 script:
   - haxelib run travix interp
