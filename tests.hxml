@@ -1,0 +1,4 @@
+--macro "tink.Template.addFlavor('stache', '{{', '}}')"
+-lib tink_lang
+-cp ./tests/
+-main Run

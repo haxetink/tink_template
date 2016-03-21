@@ -1,7 +1,6 @@
+-lib tink_template
 -lib tink_lang
--cp src
 -cp tests
 -neko bin/tinktemplate.n
 -main Run
-extraParams.hxml
 --macro "tink.Template.addFlavor('stache', '{{', '}}')"
