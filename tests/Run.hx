@@ -26,7 +26,8 @@ class Run {
 		var r = new TestRunner();
 		for (c in tests)
 			r.add(c);
-		r.run();
+		if (!r.run())
+      Sys.exit(500);
 	}
 
 }
