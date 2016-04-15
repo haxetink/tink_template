@@ -1,7 +1,7 @@
 package tink.template;
 
 typedef Settings = {
-	openTag:String,
-	closeTag:String,
-	allowForeach:Bool
+  openTag:String,
+  closeTag:String,
+  allowForeach:Bool
 }
