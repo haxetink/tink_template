@@ -88,13 +88,16 @@ class Template {
         
       }
       
-      function addTemplate(m:Member, ?name:String) {
+      function addTemplate(m:Member, ?name:String, ?plugins:Iterable<Frontend>) {
         if (name == null)
           name = m.name;
           
-        switch FrontendContext.seekFile(c.target.pack, name, frontends) {
+        if (plugins == null)
+          plugins = frontends;
+          
+        switch FrontendContext.seekFile(c.target.pack, name, plugins) {
           case []:
-            m.pos.error('what?');
+            m.pos.error('Failed to find template $name');
           case v:
             v[0].plugin.parseField(v[0].file, m);
             addDependency(v[0].file);
@@ -105,10 +108,22 @@ class Template {
         switch member.extractMeta(':template') {
           case Success( { params: [] } ):
             addTemplate(member);
-            
           case Success({ params: [macro $i{name}] }):
             addTemplate(member, name);
-          //case Success({ params: [macro $i{name}] }):
+          case Success({ params: [v] }):
+            var name = v.getString().sure();
+            
+            var plugins:Iterable<Frontend> = 
+              switch name.extension() {
+                case '' | null:
+                  frontends;
+                case ext:
+                  name = name.withoutExtension();
+                  [for (f in frontends) for (e in f.extensions()) if (e == ext) f];
+              }
+  
+            addTemplate(member, name, plugins);
+            
           case Success({ params: v }):
             v[2].reject('Too many arguments');
           case Failure(_):
