@@ -12,8 +12,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "Add flag to control position comments.",
-	"version": "0.3.0",
+	"releasenote": "Improve field level templates.",
+	"version": "0.3.1",
 	"url": "http://haxetink.org/tink_template",
 	"dependencies": {
 		"tink_syntaxhub": ""
