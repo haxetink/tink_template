@@ -384,7 +384,7 @@ Fields work pretty much like variables and functions, except that they can have 
 
 If you are uncomfortable with not having a `.hx` file for your Haxe class, or if you have a lot of plain Haxe code that it would feel silly to put into the template, you can mix a template into a class with the `@:template` metadata, which follows [the same resolution logic as for fields](#template-resolution).
 
-However, in mixed in templates you cannot use `implements`, `extends`, `using` or `import` due to limitations in the macro API.
+However, in mixed in templates you cannot use `implements`, `extends`, `using` or `import` due to limitations in the macro API. You should write them in the `.hx` file instead.
 
 # Escaping
 
