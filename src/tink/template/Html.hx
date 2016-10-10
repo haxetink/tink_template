@@ -31,7 +31,7 @@ abstract Html(String) {
     return new Html(ret);
   }
   
-  @:to public function toString():String
+  @:to public inline function toString():String
     return this;
     
   @:from static function ofMultiple(parts:Array<Html>):Html 
@@ -44,6 +44,21 @@ abstract Html(String) {
     return new HtmlBuffer();
 }
 
+#if js
+abstract HtmlBuffer({ s: String }) {
+  public inline function new() this = { s: '' };
+  
+  public inline function collapse():Html
+    return new Html(this.s);
+  
+  @:to public inline function toString():String
+    return this.s;
+  
+  public inline function add(b:Html)
+    this.s += b.toString();
+    
+}
+#else
 abstract HtmlBuffer(Array<Html>) {
   public inline function new() this = [];
   
@@ -57,3 +72,4 @@ abstract HtmlBuffer(Array<Html>) {
     this.push(b);
     
 }
+#end
