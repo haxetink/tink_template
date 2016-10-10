@@ -1,4 +1,5 @@
 # Tinkerbell Template Library
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg?maxAge=2592000)](https://gitter.im/haxetink/public)
 
 This library adds compile time support for a `haxe.Template` like string based template language. Using it, templates always end up as actual methods on Haxe classes. Think of it as a superset of Haxe, that makes concatenating strings particularly easy. It is still statically typed and supports using, macros and what not.
 
@@ -383,7 +384,7 @@ Fields work pretty much like variables and functions, except that they can have 
 
 If you are uncomfortable with not having a `.hx` file for your Haxe class, or if you have a lot of plain Haxe code that it would feel silly to put into the template, you can mix a template into a class with the `@:template` metadata, which follows [the same resolution logic as for fields](#template-resolution).
 
-However, in mixed in templates you cannot use `implements`, `extends`, `using` or `import` due to limitations in the macro API.
+However, in mixed in templates you cannot use `implements`, `extends`, `using` or `import` due to limitations in the macro API. You should write them in the `.hx` file instead.
 
 # Escaping
 
