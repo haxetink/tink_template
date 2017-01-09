@@ -186,7 +186,7 @@ class Generator {
       }
       
     for (f in type.fields)
-      f.publish();
+      (f:Member).publish();
     
   }
 }
