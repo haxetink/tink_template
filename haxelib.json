@@ -12,8 +12,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "Improve field level templates.",
-	"version": "0.3.1",
+	"releasenote": "Adjust to Haxe 3.4 related changes",
+	"version": "0.3.2",
 	"url": "http://haxetink.org/tink_template",
 	"dependencies": {
 		"tink_syntaxhub": ""
