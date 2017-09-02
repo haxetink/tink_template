@@ -27,13 +27,13 @@ While this can easily be mistaken for an opportunity to obsess over syntax, it m
 1. Use `tink_template` on other file extensions, e.g. to simply get the `mtt` syntax in `.html` files, you can do
 
  ```haxe 
- --macro tink.Template.use('html', '::', '::', true)
+ --macro tink.Template.addFlavor('html', '::', '::', true)
  ```
 2. Use different delimiters, because they have a meaning in the language you are generating (you could have templates that create templates for example)
 3. Make it a bit less tedious to consume other syntax, e.g. to parse a subset of moustache templates, you could simply do
 
  ```
- --macro tink.Template.use('moustache', '{{', '}}')
+ --macro tink.Template.addFlavor('moustache', '{{', '}}')
  ```
 
 # Usage
