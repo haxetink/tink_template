@@ -122,7 +122,7 @@ class Generator {
     
     return macro @:pos(pos) {
       var ret = tink.template.Html.buffer();
-      $a{body.map(generateExpr)};
+      $b{body.map(generateExpr)};
       $ret;
     }
   }
