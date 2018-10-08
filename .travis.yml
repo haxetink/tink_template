@@ -14,20 +14,24 @@ os:
 
 env:
   - HAXE_VERSION=3.4.7
-  # - HAXE_VERSION=latest
+  - HAXE_VERSION=latest
   
 install:
   - npm i -g lix
   - lix install haxe $HAXE_VERSION
   - lix download
+  
+before_script:
+  - args=()
+  - if [ "$HAXE_VERSION" == "latest" ]; then args+=(-lib); args+=(hx3compat); fi
 
 script:
-  - lix run travix interp
-  - lix run travix neko
-  #- lix run travix python
-  - lix run travix node
-  # - lix run travix flash
-  - lix run travix java
-  #- lix run travix cpp
-  #- lix run travix cs
-  - lix run travix php
+  - lix run travix interp "${args[@]"
+  - lix run travix neko "${args[@]"
+  #- lix run travix python "${args[@]"
+  - lix run travix node "${args[@]"
+  # - lix run travix flash "${args[@]"
+  - lix run travix java "${args[@]"
+  #- lix run travix cpp "${args[@]"
+  #- lix run travix cs "${args[@]"
+  - lix run travix php "${args[@]"
