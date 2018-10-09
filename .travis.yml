@@ -13,8 +13,6 @@ os:
   # - osx
 
 env:
-  - secure: "MZVQrI8KbB8A4ORDgLgoemYggRpufVMq3r3yM0HPIUD8u8HBdJH3KXGncamUYdVq/+vqB3WS7hExLh+MY0505DbOJz72SAq3ZX0eswUd8YuR+SiiEEU5N9FMMvZbBoV5PJ1ridITl7jfEhkeqqmqlu+RlQ6XEdMuTuvQPQSaNhU="
-
   - HAXE_VERSION=3.4.7
   - HAXE_VERSION=latest
   
@@ -37,3 +35,18 @@ script:
   #- lix run travix cpp "${args[@]}"
   #- lix run travix cs "${args[@]}"
   - lix run travix php "${args[@]}"
+
+jobs:
+  include:
+    # - stage: test # should uncomment this when there is no matrix above (e.g. only one os, one env, etc)
+    - stage: deploy
+      os: linux
+      install:
+        - npm i -g lix
+        - lix download
+      script: skip
+      env:
+        secure: MZVQrI8KbB8A4ORDgLgoemYggRpufVMq3r3yM0HPIUD8u8HBdJH3KXGncamUYdVq/+vqB3WS7hExLh+MY0505DbOJz72SAq3ZX0eswUd8YuR+SiiEEU5N9FMMvZbBoV5PJ1ridITl7jfEhkeqqmqlu+RlQ6XEdMuTuvQPQSaNhU=
+      after_success:
+        - lix run travix install
+        - lix run travix release
