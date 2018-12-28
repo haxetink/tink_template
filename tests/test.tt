@@ -1,0 +1,16 @@
+<table>
+	<tbody>
+		::for o in iterable::
+			<tr>
+				::for field in conf.fields::
+					::switch( field )::
+						::case ELCounter::
+							<td>&nbsp;</td>
+						::case ELID::
+							<td>::o.id::</td>
+					::end::
+				::end::
+			</tr>
+		::end::
+	</tbody>
+</table>

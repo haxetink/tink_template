@@ -38,4 +38,40 @@ using haxe.Json;
     assertTrue(title.match(frame));
     assertEquals('Hello World', title.matched(1));
   }
+  
+  @:template static function test<T:Object>( conf : TListingConf<T>, iterable : Iterable<T> );
+	static var conf	= {
+    fields : [
+      ELCounter,
+      ELID
+    ]
+  }
+
+  function testIssue13() {
+    var it = [ for ( i in 0...10 ) { var o = new MyObj(); o.id = i; o; } ];
+		assertTrue( test( conf, it ).toString().length > 0);
+  }
+  
+}
+
+enum EListingField<T:Object> {
+	ELCounter;
+	ELID;
+}
+
+typedef TListingConf<T:Object> = {
+	fields : Array<EListingField<T>>
+}
+
+#if js
+@:native('Blargh') // yup
+#end
+class Object {
+	public var id : Int;
+	public function new(){}
+}
+
+class MyObj extends Object {
+	public var name	: String;
+	public function new() super();  
 }
