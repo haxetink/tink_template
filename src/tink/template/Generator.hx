@@ -101,7 +101,11 @@ class Generator {
             }
               
         case Function(name, args, body):            
+#if (haxe_ver >= 4)
+          functionBody(body, true).func(args, false).asExpr(FNamed(name, false));
+#else
           functionBody(body, true).func(args, false).asExpr(name);
+#end
         case Block(exprs):
           exprs.map(generateExpr).toBlock(pos);
       }
