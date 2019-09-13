@@ -576,11 +576,7 @@ class Parser {
         case Success('function'):
           var f = parseFunction();
           if (f.tpl == null)
-#if (haxe_ver >= 4)
-            Do(EFunction(FNamed(f.name, false), f.func).at(f.pos));
-#else
             Do(EFunction(f.name, f.func).at(f.pos));
-#end
           else
             Function(f.name, f.func.args, f.tpl);          
         case Success('var'):
