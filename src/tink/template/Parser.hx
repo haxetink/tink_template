@@ -576,7 +576,7 @@ class Parser {
         case Success('function'):
           var f = parseFunction();
           if (f.tpl == null)
-            Do(EFunction(f.name, f.func).at(f.pos));
+            Do(f.func.asExpr(f.name, f.pos));
           else
             Function(f.name, f.func.args, f.tpl);          
         case Success('var'):
