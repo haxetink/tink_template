@@ -12,8 +12,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "Fix for Haxe 4",
-	"version": "0.3.3",
+	"releasenote": "Update for haxe 4 rc.5",
+	"version": "0.4.0",
 	"url": "http://haxetink.org/tink_template",
 	"dependencies": {
 		"tink_syntaxhub": ""
