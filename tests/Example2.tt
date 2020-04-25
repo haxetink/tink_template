@@ -14,7 +14,7 @@
         <li>(: dup(i) :)</li>
       (: end :)
     </ol>
-    
+
     (: for s in ['fooo', 'bar'] :)
       <span>(: s.length :)</span>
     (: end :)
@@ -41,5 +41,5 @@
   (: else :)
     no!!
   (: end :)
-  
+
 (: end :)
