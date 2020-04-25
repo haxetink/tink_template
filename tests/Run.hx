@@ -2,16 +2,11 @@ package ;
 
 import haxe.unit.*;
 
-using tink.CoreApi;
-
-#if flash
-private typedef Sys = flash.system.System;
-#end
 class Run {
   static var tests:Array<TestCase> = [
     new SimpleTest()
   ];
-  static function main() 
+  static function main()
     travix.Logger.exit({
       var r = new TestRunner();
       for (c in tests)
