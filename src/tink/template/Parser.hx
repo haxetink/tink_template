@@ -10,16 +10,16 @@ using tink.MacroApi;
 using StringTools;
 
 class Parser {
-  
+
   var pos:Int;
   var last:Int;
   var file:String;
-  var source:String;  
-  
+  var source:String;
+
   var openTag:String;
   var closeTag:String;
   var allowForeach:Bool;
-  
+
   public function new(source, file, settings:Settings) {
     this.source = source;
     this.file = file;
@@ -30,21 +30,21 @@ class Parser {
     this.allowForeach = settings.allowForeach;
   }
 
-  function isNext(s) 
+  function isNext(s)
     return source.substr(pos, s.length) == s;
-    
+
   function allow(s:String)
-    return 
+    return
       if (isNext(s)) {
         pos += s.length;
         true;
       }
       else false;
-  
+
   function until(s:String, ?orEnd = false):String {
     this.last = pos;
     var nu = source.indexOf(s, pos);
-    return 
+    return
       if (nu == -1)
         if (orEnd) {
           var ret = source.substring(pos);
@@ -64,13 +64,13 @@ class Parser {
         ret;
       }
   }
-  
+
   function getPos()
     return Context.makePosition({ min: last, max: pos, file: file });
-  
+
   public function parseFull():TplExpr {
-    var ret = [parse()];
-    while (pos < source.length) {      
+    var ret = [];
+    while (pos < source.length) {
       var start = pos;//dirty look ahead coming up!
       if (allow(openTag)) {
         if (allow('*')) {
@@ -87,15 +87,15 @@ class Parser {
           default:
         }
       }
-      
+
       ret.push(parse());
     }
     return TplExpr.Block(ret);
   }
 
   static function parseHx(s:String, pos:Position)
-    return 
-      try 
+    return
+      try
         Context.parseInlineString(s, pos).transform(function (e) return switch e.expr {
           case EConst(CString(s)):
             s.formatString(e.pos);
@@ -113,23 +113,23 @@ class Parser {
     var v = parseSimple();
     return
       switch v {
-        case macro break, macro continue: 
+        case macro break, macro continue:
           Do(v);
-        default: 
+        default:
           Yield(v);
       }
   }
-  
-  function expect(s:String) 
+
+  function expect(s:String)
     if (!allow(s))
-      getPos().error('expected $s');  
-  
+      getPos().error('expected $s');
+
   static var ACCESSES = [for (a in Access.createAll()) a.getName().substr(1).toLowerCase() => a];
 
   function parseAccess() {
     var ret = [];
     var done = false;
-    
+
     while (!done) {
       done = true;
       for (a in ACCESSES.keys())
@@ -139,64 +139,64 @@ class Parser {
           skipWhite();
         }
     }
-    return ret;    
+    return ret;
   }
 
   public function parseAll() {
     skipWhite();
-    
+
     var ret = [];
-    
+
     while (allow(openTag)) {
-      
+
       if (allow('*')) {
         until('*$closeTag');
         skipWhite();
         continue;
       }
-      
+
       skipWhite();
-      
+
       ret.push(parseDecl());
-      
+
       skipWhite();
     }
-    
+
     return {
       pos: Context.makePosition( { min: 0, max: source.length, file: file } ),
       declarations: ret,
     }
   }
-  
-  function parseField(field:Field, ?token) 
+
+  function parseField(field:Field, ?token)
     return
       switch if (token == null) ident() else token {
         case Success('var'):
           skipWhite();
-          
+
           field.name = ident().sure();
           field.pos = getPos();
           skipWhite();
-          var prop = 
-            if (isNext('(')) 
+          var prop =
+            if (isNext('('))
               switch getArgs().split(',') {
-                case [get, set]: 
+                case [get, set]:
                   new Pair(get, set);
-                default: 
+                default:
                   getPos().error('malformed field access');
               }
             else new Pair('default', 'default');
-              
+
           skipWhite();
-          
+
           function setKind(?t, ?e) {
             field.kind = FProp(prop.a, prop.b, t, e);
             return field;
           }
-          
-          if (allow(closeTag)) 
+
+          if (allow(closeTag))
             TemplateField(setKind(), parseToEnd());
-          else 
+          else
             VanillaField(
               switch parseHx('var foo '+until(closeTag), getPos()) {
                 case { expr: EVars([v]) }: setKind(v.type, v.expr);
@@ -209,19 +209,19 @@ class Parser {
           field.name = f.name;
           field.pos = f.pos;
           field.kind = FFun(f.func);
-          
-          if (f.tpl == null) 
+
+          if (f.tpl == null)
             VanillaField(field);
           else
             TemplateField(field, f.tpl);
         case Success(v):
           getPos().error('unexpected identifier $v');
         case f:
-          getPos().error('Invalid toplevel declaration');  
+          getPos().error('Invalid toplevel declaration');
       }
-    
-  
-  function parseDecl() 
+
+
+  function parseDecl()
     return
       switch parseMeta() {
         case []:
@@ -237,23 +237,23 @@ class Parser {
                       mode = INormal;
                   while (true) {
                     skipWhite();
-                    
+
                     if (allow('*')) {
                       mode = IAll;
                       skipWhite();
                       expect(closeTag);
                       break;
                     }
-                    
+
                     switch ident().sure() {
-                      case 'in': 
+                      case 'in':
                         skipWhite();
                         mode = IAsName(ident().sure());
                         skipWhite();
                         expect(closeTag);
                         break;
-                        
-                      case v: 
+
+                      case v:
                         parts.push(v);
                         skipWhite();
                         if (allow(closeTag)) break;
@@ -261,7 +261,7 @@ class Parser {
                     }
                   }
                   Import(parts.join('.'), mode, getPos());
-                
+
                 case Success('using'):
                   var path = [ident().sure()];
                   while (allow('.'))
@@ -269,9 +269,9 @@ class Parser {
                   skipWhite();
                   expect(closeTag);
                   Using(path.join('.'), getPos());
-                
+
                 case v:
-                  
+
                   parseField({ pos: null, name: null, kind: null }, v);
               }
             case access:
@@ -281,47 +281,47 @@ class Parser {
           skipWhite();
           if (allow(closeTag))
             TplDecl.Meta(v);
-          else 
+          else
             parseField({ pos: null, name: null, kind: null, access: parseAccess(), meta: v });
       }
-  
-  function parseSuperType(isClass:Bool) 
+
+  function parseSuperType(isClass:Bool)
     return
       switch parseHx('new ' + until(closeTag) + '()', getPos()) {
         case { expr: ENew(t, _), pos: pos }:
           SuperType(t, isClass, pos);
-        default: 
+        default:
           throw 'assert';
-      }      
-  
-  
+      }
+
+
   function parseFunction() {
     var name = ident().sure();
-    
-    var params = 
+
+    var params =
       if (isNext('<')) '<' + balanced('<', '>') + '>';
       else '';
-      
+
     var args = getArgs();
-    
+
     skipWhite();
-    
+
     var tpl = null;
-    var fBody = 
+    var fBody =
       if (allow(closeTag)) {
         tpl = parseToEnd();
         '{}';
       }
-      else 
+      else
         removeTrailingSemicolon(until(closeTag));
-        
-    var fname = 
+
+    var fname =
       switch name {
         case 'new': '';
         case _: name;
       }
-      
-    var func = 
+
+    var func =
       switch parseHx('function $fname$params($args) $fBody', getPos()) {
         case { expr: EFunction(_, f) }:
           if (tpl != null)
@@ -330,7 +330,7 @@ class Parser {
         default:
           throw 'assert';
       }
-    
+
     return {
       tpl: tpl,
       func: func,
@@ -338,19 +338,19 @@ class Parser {
       pos: getPos(),
     }
   }
-  
+
   function removeTrailingSemicolon(s:String) {
     s = s.rtrim();
     if (s.endsWith(';'))
       s = s.substr(0, s.length - 1);
     return s;
   }
-  
-  function skipWhite() 
+
+  function skipWhite()
     while (source.charCodeAt(pos) <= 32) pos++;
-  
+
   static var IDENT = [for (c in '_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) c.charCodeAt(0) => true];
-  
+
   function ident() {
     skipWhite();
     this.last = pos;
@@ -365,67 +365,67 @@ class Parser {
         ret;
       }
   }
-  
+
   function parseMetaEntry():MetadataEntry {
-    
+
     expect('@');
-    
+
     var name = (allow(':') ? ':' : '') + ident().sure();
     var ret = {
       name: name,
       pos: getPos(),
       params: [],
     }
-    
+
     skipWhite();
-    
+
     if (isNext('(')) {
       var start = pos;
       var s = getArgs();
-      
+
       var pos = getPos();
-      
+
       ret.params = exprList(s, pos);
       ret.pos = pos;
       skipWhite();
     }
     return ret;
   }
-  
-  static function exprList(source:String, pos) 
+
+  static function exprList(source:String, pos)
     return
       switch parseHx('[$source]', pos) {
         case macro [$a{args}]:
           args;
-        default: 
+        default:
           throw 'assert';
       }
-    
-  inline function getArgs() 
+
+  inline function getArgs()
     return balanced('(', ')');
-  
+
   function balanced(open:String, close:String) {
     var start = pos;
     var ret = '';
     do {
       until(close);
       ret = source.substring(start + 1, pos - 1);
-    } while (ret.split(open).length > ret.split(close).length);    
+    } while (ret.split(open).length > ret.split(close).length);
     last = start;
-    return ret;    
+    return ret;
   }
-  
+
   function parseMeta()
     return
       [while (isNext('@')) parseMetaEntry()];
-  
+
   function parseToEnd() {
     var ret = parseFull();
     expectAll([openTag, 'end', closeTag]);
     //expect('${openTag}end${closeTag}');
     return ret;
   }
-  
+
   function finishLoop(loop:TplExpr) {
     expect(openTag);
     skipWhite();
@@ -436,7 +436,7 @@ class Parser {
         var alt = parseToEnd();
         var tmp = MacroApi.tempName();
         var wasRun = Do(macro $i{tmp} = true);
-        function markRun(t) 
+        function markRun(t)
           return
             switch t {
               case Block(exprs):
@@ -451,12 +451,12 @@ class Parser {
             While(cond, markRun(body));
           case v: loop;//error?
         }
-        
+
         Block([
           Do(macro var $tmp = false),
           loop,
           If(macro !$i{tmp}, alt, null)
-        ]);          
+        ]);
       case Success('end'):
         skipWhite();
         expect(closeTag);
@@ -467,7 +467,7 @@ class Parser {
         getPos().error('expected end or else here');
     }
   }
-  
+
   function expectAll(tokens:Array<String>) {
     for (t in tokens) {
       skipWhite();
@@ -475,13 +475,13 @@ class Parser {
     }
     skipWhite();
   }
-  
+
   function parseComplex() {
-    
+
     var meta = parseMeta();
     skipWhite();
     var start = pos;//dirty lookahead coming
-    var ret = 
+    var ret =
       switch ident() {
         case Success('for'):
           finishLoop(For(parseSimple(), parseFull()));
@@ -500,25 +500,25 @@ class Parser {
         case Success('if'):
           var cases = [],
               alt = null;
-              
+
           function next()
             cases.push({
               when: parseSimple(),
               then: parseFull()
             });
-            
+
           next();
-          
+
           while (pos < source.length) {
             var start = pos;//one dirty look ahead coming up
             if (allow(openTag)) {
               var kw = ident();
               switch kw {
-                case Success('elseif'): 
+                case Success('elseif'):
                   next();
                 case Success('else'):
                   switch ident() {
-                    case Success('if'): 
+                    case Success('if'):
                       next();
                     case Success(v):
                       getPos().error('Unexpected identifier $v');
@@ -533,19 +533,19 @@ class Parser {
               }
             }
           }
-            
+
           expectAll([openTag, 'end', closeTag]);
-          
+
           while (cases.length > 0)
             switch cases.pop() {
-              case v: 
+              case v:
                 alt = If(v.when, v.then, alt);
             }
-          alt;          
+          alt;
         case Success('switch'):
           var target = parseSimple();
           skipWhite();
-          
+
           expect(openTag);
           var cases = [];
           while (pos < source.length)
@@ -553,7 +553,7 @@ class Parser {
               case Success('case'):
                 var src = until(closeTag);
                 switch parseHx('switch _ { case $src: }', getPos()) {
-                  case { expr: ESwitch(_, [c], _) } if (c.expr == null): 
+                  case { expr: ESwitch(_, [c], _) } if (c.expr == null):
                     cases.push({
                       values: c.values,
                       guard: c.guard,
@@ -562,7 +562,7 @@ class Parser {
                     expect(openTag);
                   case e:
                     e.reject('invalid case statement: ${e.toString()}');
-                }                
+                }
               case Success('end'):
                 expect(closeTag);
                 break;
@@ -572,52 +572,52 @@ class Parser {
                 getPos().error('expected case or end');
             }
           Switch(target, cases);
-          
+
         case Success('function'):
           var f = parseFunction();
           if (f.tpl == null)
             Do(f.func.asExpr(f.name, f.pos));
           else
-            Function(f.name, f.func.args, f.tpl);          
+            Function(f.name, f.func.args, f.tpl);
         case Success('var'):
           pos = start;
           switch parseSimple().expr {
             case EVars([{ name: name, expr: null }]):
               Define(name, parseToEnd());
-            case EVars(vars): 
+            case EVars(vars):
               Var(vars);
             default:
               throw 'assert';
-          }          
+          }
         default:
           pos = start;
           parseInline();
       }
-      
+
     return switch meta {
       case []: ret;
       case v: Meta(v, ret);
-    }      
+    }
   }
-  
+
   function collapseWhite(s:String) {
     return s;
     var ret = new StringBuf(),
       i = 0;
-      
+
     while (i < s.length)
       if (s.charCodeAt(i) < 33) {
         ret.addChar(32);
-        while (s.charCodeAt(i) < 33) i++; 
+        while (s.charCodeAt(i) < 33) i++;
       }
       else ret.addChar(s.charCodeAt(i++));
-      
+
     return ret.toString();
   }
-  
+
   function parse():TplExpr
     return
-      if (allow(openTag)) 
+      if (allow(openTag))
         parseComplex();
       else {
         var pos = getPos();

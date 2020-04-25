@@ -1,3 +1,5 @@
+::* this comment is a test for issue18 *::
+
 ::@:tink::
 
 ::* this is just a comment *::
@@ -16,7 +18,7 @@
         <li>::dup(i)::</li>
       ::end::
     </ol>
-    
+
     ::foreach ['fooo', 'bar']::
       <span>::length::</span>
     ::end::
@@ -43,5 +45,5 @@
   ::else::
     no!!
   ::end::
-  
+
 ::end::
