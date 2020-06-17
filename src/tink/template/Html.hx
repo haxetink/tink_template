@@ -1,75 +1,39 @@
 package tink.template;
 
-abstract Html(String) {
-  
-  public inline function new(s:String) this = s;
-  
-  @:from static public function escape(s:String):Html {
-    if (s == null) return null;
-    s = Std.string(s);
-    var start = 0,
-      pos = 0,
-      max = s.length;
-    var ret = '';
-    
-    inline function flush(?entity:String) 
-      ret += 
-        if (entity == null)
-          s.substr(start);
-        else
-          s.substring(start, (start = pos) - 1) + entity;
-    
-    while (pos < max) 
-      switch s.charAt(pos++) {
-        case '"': flush('&quot;');
-        case '<': flush('&lt;');
-        case '>': flush('&gt;');
-        case '&': flush('&amp;');
-      }
-      
-    flush();
-    return new Html(ret);
-  }
-  
+import tink.HtmlString;
+import tink.htmlstring.HtmlBuffer as Buf;
+
+abstract Html(HtmlString) from HtmlString to HtmlString {
+
+  public inline function new(s:String) this = new HtmlString(s);
+
+  @:from static public function escape(s:String):Html
+    return (s:HtmlString);
+
   @:to public inline function toString():String
     return this;
-    
-  @:from static function ofMultiple(parts:Array<Html>):Html 
+
+  @:from static function ofMultiple(parts:Array<Html>):Html
     return new Html(parts.join(''));
-    
+
   @:from static public function of<A>(a:A):Html
     return escape(Std.string(a));
-    
-  static public function buffer():HtmlBuffer 
+
+  static public function buffer():HtmlBuffer
     return new HtmlBuffer();
 }
 
-#if js
-abstract HtmlBuffer({ s: String }) {
-  public inline function new() this = { s: '' };
-  
+abstract HtmlBuffer(Buf) {
+  public inline function new()
+    this = new Buf();
+
   public inline function collapse():Html
-    return new Html(this.s);
-  
+    return this.toHtml();
+
   @:to public inline function toString():String
-    return this.s;
-  
+    return this.toString();
+
   public inline function add(b:Html)
-    this.s += b.toString();
-    
+    this.add(b);
+
 }
-#else
-abstract HtmlBuffer(Array<Html>) {
-  public inline function new() this = [];
-  
-  public function collapse():Html
-    return this;
-  
-  @:to public inline function toString():String
-    return this.join('');
-  
-  public inline function add(b:Html)
-    this.push(b);
-    
-}
-#end

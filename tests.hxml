@@ -1,4 +1,5 @@
 --macro tink.Template.addFlavor('stache', '{{', '}}')
+-lib hx3compat
 -lib tink_lang
 -cp ./tests/
 -main Run

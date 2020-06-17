@@ -1,5 +1,6 @@
 -cp src
 -D tink_template
+-lib tink_htmlstring
 -lib tink_syntaxhub
 --macro tink.Template.addFlavor('mtt', '::', '::', true)
 --macro tink.Template.addFlavor('tt', '(:', ':)', false)

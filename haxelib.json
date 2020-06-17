@@ -3,7 +3,8 @@
 	"description": "Tinkerbell template Language",
 	"classPath": "src",
 	"dependencies": {
-		"tink_syntaxhub": ""
+		"tink_syntaxhub": "",
+		"tink_htmlstring": ""
 	},
 	"url": "http://haxetink.org/tink_template",
 	"contributors": [
