@@ -1,5 +1,6 @@
 package tink.template;
 
+#if macro
 import haxe.macro.Expr;
 import haxe.macro.Context;
 import tink.template.TplExpr;
@@ -96,7 +97,7 @@ class Parser {
   static function parseHx(s:String, pos:Position)
     return
       try
-        Context.parseInlineString(s, pos).transform(function (e) return switch e.expr {
+        Context.parse(s, pos).transform(function (e) return switch e.expr {
           case EConst(CString(s)):
             s.formatString(e.pos);
           default: e;
@@ -624,3 +625,4 @@ class Parser {
         Const(collapseWhite(until(openTag, true)), pos);
       }
 }
+#end
