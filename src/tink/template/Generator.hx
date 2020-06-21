@@ -44,7 +44,7 @@ class Generator {
         case Const(value, pos):
           macro @:pos(pos) ret.add(new tink.template.Html($v{value}));
         case Define(name, value):
-          macro @:pos(pos) var $name = ${functionBody(value)};
+          macro @:pos(pos) var $name = ${functionBody(value, null)};
         case Yield(e):
           macro @:pos(e.pos) ret.add($e);
         case Do(e):
@@ -100,8 +100,8 @@ class Generator {
               ${generateExpr(body)};
             }
 
-        case Function(name, args, body, _):
-          functionBody(body, true).func(args, false).asExpr(name);
+        case Function(name, args, body, t):
+          functionBody(body, t, true).func(args, false).asExpr(name);
         case Block(exprs):
           exprs.map(generateExpr).toBlock(pos);
       }
@@ -109,19 +109,28 @@ class Generator {
     return ret;
   }
 
-  static public function functionBody(body:TplExpr, ?withReturn:Bool):Expr {
-    var pos = getPos(body);
-    var body = [body];
+  static public function functionBody(body:TplExpr, produces:ComplexType, ?withReturn:Bool):Expr {
+    var pos = getPos(body),
+        body = [body];
 
     if ((Context.defined('debug') && Context.definedValue('tink_template_pos') != 'off') || Context.definedValue('tink_template_pos') == 'on')
       body.unshift(Const(posComment(pos), pos));
 
     var ret = macro @:pos(pos) ret.collapse();
+
+    var buf = switch produces {
+      case null | macro : tink.template.Html: macro @:pos(pos) tink.template.Html.buffer();
+      case macro : String:
+        ret = macro @:pos(pos) ret.toString();
+        macro @:pos(pos) new StringBuf();
+      default: throw 'assert';
+    }
+
     if (withReturn)
       ret = macro return $ret;
 
     return macro @:pos(pos) {
-      var ret = tink.template.Html.buffer();
+      var ret = $buf;
       $b{body.map(generateExpr)};
       $ret;
     }
@@ -130,11 +139,11 @@ class Generator {
   static public function finalizeField(f:Field, expr:TplExpr)
     switch f.kind {
       case FFun(f):
-        f.expr = functionBody(expr, true);
+        f.expr = functionBody(expr, f.ret, true);
       case FVar(t, _):
-        f.kind = FVar(t, functionBody(expr));
+        f.kind = FVar(t, functionBody(expr, t));
       case FProp(get, set, t, _):
-        f.kind = FProp(get, set, t, functionBody(expr));
+        f.kind = FProp(get, set, t, functionBody(expr, t));
     }
 
   static public function generate(ast:{ pos: Position, declarations: Array<TplExpr.TplDecl> }, into:FrontendContext) {

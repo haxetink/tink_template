@@ -308,8 +308,8 @@ class Parser {
     skipWhite();
 
     var ret =
-      if (allow(':String')) 'String';
-      else 'tink.template.Html';
+      if (allow(':String')) ':String';
+      else '';
 
     skipWhite();
 
@@ -329,7 +329,7 @@ class Parser {
       }
 
     var func =
-      switch parseHx('function $fname$params($args):$ret $fBody', getPos()) {
+      switch parseHx('function $fname$params($args)$ret $fBody', getPos()) {
         case { expr: EFunction(_, f) }:
           if (tpl != null)
             f.expr = null;
