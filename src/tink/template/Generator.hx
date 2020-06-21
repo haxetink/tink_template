@@ -1,14 +1,14 @@
 package tink.template;
 
+#if macro
 import haxe.macro.Expr;
 import tink.syntaxhub.FrontendContext;
-import tink.template.TplExpr.TplDecl;
 
 using haxe.macro.Context;
 using tink.MacroApi;
 
 class Generator {
-  
+
   static function getPos(t:TplExpr)
     return
       if (t == null) null;
@@ -19,18 +19,18 @@ class Generator {
         case Var([]): Context.currentPos();
         case Block([]): Context.currentPos();
         case Var(a): a[0].expr.pos;
-        case Function(_, _, t): getPos(t);
+        case Function(_, _, t, _): getPos(t);
         case Block(a): getPos(a[0]);
-      }  
-  
+      }
+
   static function posComment(pos:Position) {
     var pos = Context.getPosInfos(pos);
     return '<!-- POSITION: ${haxe.Json.stringify(pos)} -->';
   }
-  
+
   static function generateExpr(t:TplExpr):Expr {
-    var pos = getPos(t);    
-    var ret:Expr = 
+    var pos = getPos(t);
+    var ret:Expr =
       if (t == null) null;
       else switch t {
         case Meta(meta, e):
@@ -39,7 +39,7 @@ class Generator {
             e = EMeta(m, e).at(m.pos);
           e;
         case While(cond, body):
-          macro @:pos(pos) 
+          macro @:pos(pos)
             while ($cond) ${generateExpr(body)};
         case Const(value, pos):
           macro @:pos(pos) ret.add(new tink.template.Html($v{value}));
@@ -65,16 +65,16 @@ class Generator {
               ${generateExpr(alt)};
         case For(target, body, legacy):
           var pre = macro {};
-          
+
           if (legacy) {
-            
-            target = macro @:pos(target.pos) __current__ in $target;            
-            
+
+            target = macro @:pos(target.pos) __current__ in $target;
+
             pre = (macro __current__).bounceExpr(
               function (e:Expr) {
                 var tmp = MacroApi.tempName();
                 var v = EVars(
-                  [for (f in e.typeof().sure().getFields().sure()) 
+                  [for (f in e.typeof().sure().getFields().sure())
                     if (f.isPublic && f.kind.getName() == 'FVar') {
                       var name = f.name;
                       {
@@ -83,7 +83,7 @@ class Generator {
                         expr: macro @:pos(e.pos) $i{tmp}.$name
                       }
                     }
-                  ]              
+                  ]
                 ).at(e.pos);
                 return macro @:pos(e.pos) @:mergeBlock {
                   var $tmp = $e;
@@ -91,43 +91,43 @@ class Generator {
                 }
               }
             );
-            
+
           }
-          
+
           macro @:pos(pos)
             for ($target) {
               $pre;
               ${generateExpr(body)};
             }
-              
-        case Function(name, args, body):            
+
+        case Function(name, args, body, _):
           functionBody(body, true).func(args, false).asExpr(name);
         case Block(exprs):
           exprs.map(generateExpr).toBlock(pos);
       }
-    
+
     return ret;
-  }    
-  
+  }
+
   static public function functionBody(body:TplExpr, ?withReturn:Bool):Expr {
     var pos = getPos(body);
     var body = [body];
-    
+
     if ((Context.defined('debug') && Context.definedValue('tink_template_pos') != 'off') || Context.definedValue('tink_template_pos') == 'on')
       body.unshift(Const(posComment(pos), pos));
-      
+
     var ret = macro @:pos(pos) ret.collapse();
     if (withReturn)
       ret = macro return $ret;
-    
+
     return macro @:pos(pos) {
       var ret = tink.template.Html.buffer();
       $b{body.map(generateExpr)};
       $ret;
     }
   }
-  
-  static public function finalizeField(f:Field, expr:TplExpr) 
+
+  static public function finalizeField(f:Field, expr:TplExpr)
     switch f.kind {
       case FFun(f):
         f.expr = functionBody(expr, true);
@@ -136,19 +136,19 @@ class Generator {
       case FProp(get, set, t, _):
         f.kind = FProp(get, set, t, functionBody(expr));
     }
-  
+
   static public function generate(ast:{ pos: Position, declarations: Array<TplExpr.TplDecl> }, into:FrontendContext) {
-    
+
     var fallback = macro class { };
     fallback.pos = ast.pos;
     var type = into.getType(fallback);
-    
+
     switch type.kind {
       case TDClass(_, _, false), TDAbstract(_, _, _):
-      default: 
+      default:
         type.pos.error('Type must be abstract or class to be augmented with template in ${type.pos.getPosInfos().file}');
     }
-    
+
     for (decl in ast.declarations)
       switch decl {
         case SuperType(t, true, pos):
@@ -158,7 +158,7 @@ class Generator {
               case TDClass(s, _, _): pos.error('cannot have multiple super classes');
               default: pos.error('type cannot have super class');
             }
-            
+
         case SuperType(t, false, pos):
           type.kind =
             switch type.kind {
@@ -173,20 +173,21 @@ class Generator {
             else type.meta.concat(m);
         case VanillaField(f):
           type.fields.push(f);
-          
+
         case Using(path, pos):
           into.addUsing(path, pos);
-          
+
         case Import(path, mode, pos):
           into.addImport(path, mode, pos);
-          
+
         case TemplateField(f, tpl):
           type.fields.push(f);
           finalizeField(f, tpl);
       }
-      
+
     for (f in type.fields)
       (f:Member).publish();
-    
+
   }
 }
+#end

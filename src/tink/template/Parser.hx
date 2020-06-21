@@ -579,7 +579,7 @@ class Parser {
           if (f.tpl == null)
             Do(f.func.asExpr(f.name, f.pos));
           else
-            Function(f.name, f.func.args, f.tpl);
+            Function(f.name, f.func.args, f.tpl, f.func.ret);
         case Success('var'):
           pos = start;
           switch parseSimple().expr {

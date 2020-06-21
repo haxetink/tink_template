@@ -12,7 +12,7 @@ enum TplExpr {
   If(cond:Expr, cons:TplExpr, ?alt:TplExpr);
   For(target:Expr, body:TplExpr, ?legacy:Bool);
   While(cond:Expr, body:TplExpr);
-  Function(name:String, args:Array<FunctionArg>, body:TplExpr);
+  Function(name:String, args:Array<FunctionArg>, body:TplExpr, ret:ComplexType);
   Switch(target:Expr, cases:Array<{ values:Array<Expr>, ?guard:Expr, expr: TplExpr }>);
   Block(exprs:Array<TplExpr>);
 }
