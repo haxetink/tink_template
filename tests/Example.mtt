@@ -51,3 +51,7 @@
 ::static function plain(value:String):String::
   Plain value ::value::
 ::end::
+
+::static function yelled(value:String):Yelled::
+  I am not ::value::
+::end::

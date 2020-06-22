@@ -36,4 +36,7 @@ abstract HtmlBuffer(Buf) {
   public inline function add(b:Html)
     this.add(b);
 
+  public inline function addRaw(s:String)
+    this.addRaw(s);
+
 }

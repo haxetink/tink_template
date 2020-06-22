@@ -42,7 +42,7 @@ class Generator {
           macro @:pos(pos)
             while ($cond) ${generateExpr(body)};
         case Const(value, pos):
-          macro @:pos(pos) ret.add(new tink.template.Html($v{value}));
+          macro @:pos(pos) ret.addRaw($v{value});
         case Define(name, value):
           macro @:pos(pos) var $name = ${functionBody(value, null)};
         case Yield(e):
@@ -118,12 +118,14 @@ class Generator {
 
     var ret = macro @:pos(pos) ret.collapse();
 
+    if (produces == null)
+      produces = macro : tink.template.Html;
+
     var buf = switch produces {
-      case null | macro : tink.template.Html: macro @:pos(pos) tink.template.Html.buffer();
       case macro : String:
-        ret = macro @:pos(pos) ret.toString();
-        macro @:pos(pos) new StringBuf();
-      default: throw 'assert';
+        macro @:pos(pos) new tink.template.PlainBuf();
+      case _.toString() => v:
+        '$v.buffer'.resolve(pos).call(pos);
     }
 
     if (withReturn)

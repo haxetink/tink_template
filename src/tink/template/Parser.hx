@@ -295,6 +295,16 @@ class Parser {
           throw 'assert';
       }
 
+  function parseType() {
+    skipWhite();
+    var ret = ident().sure();
+    skipWhite();
+    while (allow('.')) {
+      ret += '.' + ident().sure();
+      skipWhite();
+    }
+    return ret;
+  }
 
   function parseFunction() {
     var name = ident().sure();
@@ -307,15 +317,14 @@ class Parser {
 
     skipWhite();
 
+    var closed = allow(closeTag);
     var ret =
-      if (allow(':String')) ':String';
+      if (allow(':')) ':' + parseType();
       else '';
-
-    skipWhite();
 
     var tpl = null;
     var fBody =
-      if (allow(closeTag)) {
+      if (closed || allow(closeTag)) {
         tpl = parseToEnd();
         '{}';
       }

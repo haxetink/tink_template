@@ -39,12 +39,13 @@ using haxe.Json;
     assertEquals('Hello World', title.matched(1));
   }
 
-  function testPlain() {
+  function testIssue3() {
     assertEquals('Plain value <3', Example.plain('<3').trim());
+    assertEquals('I am not YELLING', (Example.yelled('yelling'):String).trim());
   }
 
   @:template static function test<T:Object>( conf : TListingConf<T>, iterable : Iterable<T> );
-	static var conf	= {
+  static var conf	= {
     fields : [
       ELCounter,
       ELID
